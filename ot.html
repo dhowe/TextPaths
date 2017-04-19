@@ -1,0 +1,26 @@
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script src="lib/opentype.js"></script>
+
+  <script>
+  var font, txt = "共產主義";
+  window.onload = function() {
+    opentype.load('fonts/ArialUnicode.ttf', function(err, font) {
+      if (err) {
+        alert('Font could not be loaded: ' + err);
+      } else {
+        var ctx = document.getElementById('canvas').getContext('2d');
+        var path = font.getPath('Hello, World!', 50, 100, 22);
+        path.draw(ctx);
+      }
+    });
+  }
+  </script>
+</head>
+
+<body>
+<canvas id="canvas" style="width: 600px"></canvas>
+</body>
+
+</html>

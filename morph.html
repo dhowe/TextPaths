@@ -11,12 +11,13 @@
   <script src="lib/sourcecode.js"></script>
   <script>
   $(function () {
-    getcode("sketch.js","#source-code");
-    getcode("vehicle.js","#source-code2");
+    getcode("morph.js","#source-code");
+    getcode("boid.js","#source-code2");
   });
   </script>
-  <script src="sketch.js"></script>
-  <script src="vehicle.js"></script>
+  <script src="wordlist.js"></script>
+  <script src="morph.js"></script>
+  <script src="boid.js"></script>
 
   <style>
     body {
@@ -28,18 +29,18 @@
 </head>
 
 <body>
-  source: &nbsp;<a href="#source" id="view-source">sketch.js</a>
+  source: &nbsp;<a href="#source" id="view-source">morph.js</a>
   <div class="code" id="source">
     <pre>
-    <code id="source-code" class="language-java"></code>
+    <code id="source-code" class="language-javascript"></code>
     </pre>
   </div>
 
-  <a href="#source2" id="view-source2">vehicle.js</a>
+  <a href="#source2" id="view-source2">boid.js</a>
   <br>
   <div class="code" id="source2">
     <pre>
-    <code id="source-code2" class="language-java"></code>
+    <code id="source-code2" class="language-javascript"></code>
     </pre>
   </div>
 
