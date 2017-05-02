@@ -2,7 +2,7 @@ var font, dotSize = 3, vehicles = [], sfe = 0.4, sfc = 0.4, pad = 100;
 //var words = { 'communism':'共產主義' };
 
 function preload() {
-  font = loadFont('fonts/ArialUnicode.ttf');
+  font = loadFont('ArialUnicode.ttf');
 }
 
 function setup() {
@@ -46,7 +46,6 @@ function setupBoidsForWord(str, sf, f) {
   bb = f.textBounds(str, 0, 0, fsize);
   x = (width-bb.w)/2, y = (height / 2) + (bb.h / 2);
   points = f.textToPoints(str, x, y, fsize, { sampleFactor: sf });
-  console.log(str, points.length);
   migrateToNewPoints(points);
 }
 
@@ -61,6 +60,7 @@ function fontSizeForBounds(font, text, boundsWidth, boundsHeight) {
 function migrateToNewPoints(points) {
 
   if (!vehicles.length) {
+
     for (var i = 0; i < points.length; i++) {
       var point = points[i];
       var target = createVector(point.x, point.y);
@@ -70,7 +70,9 @@ function migrateToNewPoints(points) {
       var v = new Vehicle(dotSize, target, position, acceleration, velocity);
       vehicles.push(v);
     }
+
   } else {
+
     var currentCount = vehicles.length;
     var difference = points.length - currentCount;
     if (difference > 0) {
@@ -87,15 +89,15 @@ function migrateToNewPoints(points) {
       }
     }
   }
-  // set targets
+
   for (var i = 0; i < points.length; i++) {
-      this.vehicles[i].setTarget(new p5.Vector(points[i].x, points[i].y));
-      this.vehicles[i].setSize(this.dotSize);
+    this.vehicles[i].setTarget(new p5.Vector(points[i].x, points[i].y));
+    //this.vehicles[i].setSize(this.dotSize);
   }
 }
 
 function drawVehicles(vehicles) {
   for (var i = 0; i < vehicles.length; i++) {
-    this.vehicles[i].behaviors().update().show();
+    this.vehicles[i].update().draw();
   }
 }
