@@ -4,40 +4,7 @@
   <meta charset="UTF-8">
 </head>
 
-<script>
-  (function() {
-      var a, b, expected, i = 0;
-      a = [100, 100, 100, 500];
-      b = [500, 100, 100, 100];
-    console.log(++i, arrayEquals(bestPairing(a, b), expected) ? 'Ok':'Fail!' );
-  })();
-
-  function arrayEquals(a1, a2)
-  {
-    if (!a1 || !a2 || a1.length !== a2.length)
-      return false;
-    for (var i = 0; i < a1.length; i++) {
-      if (a1[i] !== a2[i])
-        return false;
-    }
-    return true;
-  }
-
-  function bestPairing(a, b)
-  {
-    if (a.length !== b.length)
-      throw Error("bad input");
-
-    // indexes of best pairings for set b
-    var best = [];
-    for (var i = 0; i < a.length; i += 2)
-      best.push(i);
-
-    if (best.length !== a.length / 2)
-      throw Error("bad output");
-
-    return best;
-  }
+<script src="bundle.js">
 </script>
 
 </html>
