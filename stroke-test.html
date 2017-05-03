@@ -1,0 +1,38 @@
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <script src="lib/p5.js"></script>
+  <script src="vehicle.js"></script>
+  <script src="wordlist.js"></script>
+  <script src="stroke-utils.js"></script>
+  <script src="stroker.js"></script>
+</head>
+
+<body>
+</body>
+
+<script>
+
+var v;
+function setup() {
+
+  createCanvas(600, 600);
+  v = new Vroke('L',[100,100,100,500]);
+}
+
+
+function mouseClicked() {
+  v.reset('L', [new Point(500,100),new Point(100,100)]);
+}
+
+function draw() {
+
+  background(51);
+  strokeWeight(1);
+  v.render();
+}
+
+
+</script>
+</html>

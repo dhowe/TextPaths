@@ -1,3 +1,21 @@
+var bestPairings = 0;
+
+function bestPairing(a, b)
+{
+  if (a.length !== b.length)
+    throw Error("bad input");
+
+  // indexes of best pairings for set b
+  var best = [];
+  for (var i = 0; i < a.length; i += 2)
+    best.push(i);
+
+  if (best.length !== a.length / 2)
+    throw Error("bad output");
+
+  return best;
+}
+
 function Point(x,y) {
   this.x = x;
   this.y = y;
@@ -114,6 +132,7 @@ function Vroke(t, points) {
   this.stroke = '#f00;';
 
   if (points) {
+
     for (var i = 0; i < points.length; i+=2) {
       var target = createVector(points[i], points[i+1]);
       var position = createVector(random(0, width), random(0, height));
@@ -123,8 +142,99 @@ function Vroke(t, points) {
     }
   }
 
+  this.reset = function(type, points) {
+
+    var difference = points.length - this.vehicles.length;
+
+    if (this.type === type) {
+
+      if (type ==='Q') { // both quads, adjust num vehicles
+
+        if (difference > 0) {
+
+          for (var i = 0; i < difference; i++) {
+            var randomIndex = floor(random(this.vehicles.length));
+            var v = this.vehicles[randomIndex].copy();
+            this.vehicles.splice(randomIndex, 0, v);
+          }
+
+        } else if (difference < 0) {
+
+          for (var i = 0; i < difference * -1; i++) {
+            var randomIndex = floor(random(this.vehicles.length));
+            this.vehicles.splice(randomIndex, 1);
+          }
+        }
+      }
+    }
+    else {
+
+      if (type ==='Q') { // new one is a quad, add extras
+
+        for (var i = 0; i < difference; i++) {
+          var randomIndex = floor(random(this.vehicles.length));
+          var v = this.vehicles[randomIndex].copy();
+          this.vehicles.splice(randomIndex, 0, v);
+        }
+
+      }
+      else { // new one is a line, remove extras
+
+        while (this.vehicles.length > 2) {
+          this.vehicles.splice(2, 1);
+        }
+
+        if (this.vehicles.length != 2)
+          throw Error('bad count');
+      }
+
+      this.type = type; // change type
+    }
+
+    var pairings = [];
+    for (var i = 0; i < points.length; i++) {
+      pairings[i] = i;
+    }
+
+    if (bestPairings) {
+
+      var a = [], b = [];
+      for (var i = 0; i < points.length; i++) {
+        a.push(this.vehicles[i].target.x, this.vehicles[i].target.y);
+        b.push(points[i].x, points[i].y);
+      }
+
+      pairings = bestPairing(a, b);
+
+      if (pairings.length !== points.length)
+        throw Error('Bad pairings');
+
+      console.log('ok pariing');
+    }
+
+    // now set the targets
+    for (var i = 0; i < points.length; i++) {
+      var p = pairings[i];
+      console.log(i,pairings[i], points[i]);
+      this.vehicles[i].target.x = points[pairings[i]].x;
+      this.vehicles[i].target.y = points[pairings[i]].y;
+    }
+  }
+
   this.resetTargets = function(stroke) {
 
+    function toArray(stroke) {
+      var points = [];
+      for (var i = 0; i < stroke.vehicles.length; i++) {
+        points.push(stroke.vehicles[i].target);
+      }
+      return points;
+    }
+
+    this.reset(stroke.type, toArray(stroke));
+  }
+    //////////////////////////////////////////////////////////////////////////////
+  /*
     var difference = stroke.vehicles.length - this.vehicles.length;
 
     if (this.type === stroke.type) {
@@ -180,7 +290,7 @@ function Vroke(t, points) {
       this.vehicles[i].target.x = stroke.vehicles[i].target.x;
       this.vehicles[i].target.y = stroke.vehicles[i].target.y;
     }
-  }
+  }*/
 
   this.copy = function() {
     var s = new Vroke(this.type);
