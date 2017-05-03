@@ -1,0 +1,33 @@
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <script src="lib/jquery-1.11.3.min.js"></script>
+  <script src="wordlist.js"></script>
+
+</head>
+
+<body>
+  <div id="content"></div>
+  <div id="raw"></div>
+</body>
+
+<script>
+var count=0, keys = Object.keys(words);
+for (var i = 0; i < keys.length; i++) {
+  var word = keys[i];
+  var chin = words[keys[i]];
+  if (word.length > 7 || word.length < 5 || chin.length > 3) {
+    delete words[word];
+  }
+}
+
+
+var s = Object.keys(words).length+' / '+keys.length+"<br/><br/>"+JSON.stringify(words);
+s = s.replace(/,/g,'<br/>').replace(/[{}"]/g,'').replace(/:/g,':&nbsp; ');
+$('#content').html(s);
+
+console.log(JSON.stringify(words));
+</script>
+
+</html>
