@@ -18,6 +18,7 @@
   "homepage": "https://github.com/dhowe/TextPaths#readme",
   "dependencies": {
     "jquery": "^3.2.1",
+    "munkres-js": "^1.2.2",
     "rita": "^1.1.61"
   }
 }
