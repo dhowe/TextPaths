@@ -188,7 +188,7 @@ function Vroke(t, points) {
         b.push(points[i].x, points[i].y);
       }
 
-      pairings = bestPairing(a, b);
+      pairings = bestPairings(a, b);
 
       if (pairings.length !== points.length)
         throw Error('Bad pairings');
