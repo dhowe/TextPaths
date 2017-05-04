@@ -63,7 +63,7 @@ function bestPairings(a, b) {
     return [];
   }
 
-  if (a.length !== b.length)
+  if (a.length !== b.length || a.length % 2 != 0 || b.length % 2 != 0)
     throw Error("bad input");
 
   // indexes of best pairings for set b
