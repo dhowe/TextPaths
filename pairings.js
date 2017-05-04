@@ -1,27 +1,13 @@
-(function () { // tests
+(function() { // tests
   var a, b, expected, i = 0;
-  a = [
-    [100, 100],
-    [100, 500]
-  ];
-  b = [
-    [500, 100],
-    [100, 100]
-  ];
+  a = [100, 100, 100, 500];
+  b = [500, 100, 100, 100];
   expected = [1, 0];
   result = bestPairings(a, b);
   console.log(++i, result, arrayEquals(result, expected) ? 'Ok' : 'Fail!');
 
-  a = [
-    [0, 0],
-    [1, 1],
-    [2, 3]
-  ];
-  b = [
-    [1, 1],
-    [2, 2],
-    [1, 0]
-  ];
+  a = [0, 0, 1, 1, 2, 3];
+  b = [1, 1, 2, 2, 1, 0];
   expected = [2, 0, 1];
   result = bestPairings(a, b);
   console.log(++i, result, arrayEquals(result, expected) ? 'Ok' : 'Fail!');
@@ -32,15 +18,9 @@
   result = bestPairings(a, b);
   console.log(++i, result, arrayEquals(result, expected) ? 'Ok' : 'Fail!');
 
-  a = [
-    [0, 0],
-    [1, 1]
-  ];
-  b = [
-    [0, 1],
-    [1, 0]
-  ];
-  expected = [0,1];
+  a = [0, 0, 1, 1];
+  b = [0, 1, 1, 0];
+  expected = [0, 1];
   result = bestPairings(a, b);
   console.log(++i, result, arrayEquals(result, expected) ? 'Ok' : 'Fail!');
 
@@ -67,11 +47,13 @@ function bestPairings(a, b) {
     }
 
     var costMatrix = [];
-    for (var i = 0; i < a.length; i++) {
+    for (var i = 0; i < a.length/2; i++) {
       costMatrix.push([]);
+      var p1 = [a[i],a[i]+1];
       costMatrix[i].push(new Array(b.length));
-      for (var j = 0; j < b.length; j++) {
-        costMatrix[i][j] = dist(a[i], b[j]);
+      for (var j = 0; j < b.length/2; j++) {
+        var p2 = [b[j],b[j]+1];
+        costMatrix[i][j] = dist(p1, p2);
       }
     }
     return costMatrix;
