@@ -1,5 +1,51 @@
 var munkres = require("munkres-js");
 
+(function () { // tests
+  var a, b, expected, i = 0;
+  a = [
+    [100, 100],
+    [100, 500]
+  ];
+  b = [
+    [500, 100],
+    [100, 100]
+  ];
+  expected = [1, 0];
+  result = bestPairing(a, b);
+  console.log(++i, result, arrayEquals(result, expected) ? 'Ok' : 'Fail!');
+
+  a = [
+    [0, 0],
+    [1, 1],
+    [2, 3]
+  ];
+  b = [
+    [1, 1],
+    [2, 2],
+    [1, 0]
+  ];
+  expected = [2, 0, 1];
+  result = bestPairing(a, b);
+  console.log(++i, result, arrayEquals(result, expected) ? 'Ok' : 'Fail!');
+
+  a = [];
+  b = [];
+  expected = [];
+  result = bestPairing(a, b);
+  console.log(++i, result, arrayEquals(result, expected) ? 'Ok' : 'Fail!');
+
+})();
+
+function arrayEquals(a1, a2) {
+  if (!a1 || !a2 || a1.length !== a2.length)
+    return false;
+  for (var i = 0; i < a1.length; i++) {
+    if (a1[i] !== a2[i])
+      return false;
+  }
+  return true;
+}
+
 function bestPairing(a, b) {
 
   function getCostMatrix(a, b) {
@@ -32,9 +78,6 @@ function bestPairing(a, b) {
     item = result[i];
     best.push(item[1]);
   }
-
-  if (best.length !== a.length / 2)
-    throw Error("bad output");
 
   return best;
 }

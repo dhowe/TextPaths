@@ -28,6 +28,11 @@ var munkres = require("munkres-js");
       result = bestPairing(a, b);
       console.log(++i, result, arrayEquals(result, expected) ? 'Ok' : 'Fail!');
 
+      a = [];
+      b = [];
+      expected = [];
+      result = bestPairing(a, b);
+      console.log(++i, result, arrayEquals(result, expected) ? 'Ok' : 'Fail!');
   })();
 
   function arrayEquals(a1, a2)
