@@ -1,0 +1,139 @@
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <script src="lib/munkres.js"></script>
+  <script src="lib/p5.js"></script>
+  <script src="vehicle.js"></script>
+  <script src="wordlist.js"></script>
+  <script src="stroke-utils.js"></script>
+</head>
+
+<body>
+</body>
+
+<script>
+
+var letter, font;
+
+function setup() {
+
+  createCanvas(600, 400);
+  background(245);
+  loadFont('ArialUnicode.ttf', function(font) {
+    var glyphs = font._getGlyphs('G');
+    letter = new Letter(font, glyphs[0], 200, 300, 200);
+  });
+}
+
+function draw() {
+
+  background(245);
+  letter && letter.update().draw();
+}
+
+function Letter(font, glyph, x, y, fsize) {
+
+  this.font = font;
+  this.vehicles = [];
+  this.paths = splitPaths(glyph.getPath(x, y, fsize).commands);
+
+  this.initVehicles = function() {
+
+    for (var j = 0; j < this.paths.length; j++) {
+      for (var i = 0; i < this.paths[j].length; i++) {
+        this.vehicles[j] = this.vehicles[j] || [];
+        var cmd = this.paths[j][i], type = cmd.shift();
+        var target = createVector(cmd[0], cmd[1]);
+        var position = createVector(random(0, width), random(0, height));
+        var acceleration = createVector();
+        var velocity = p5.Vector.random2D();
+
+        var veh = new Vehicle(3, target, position, acceleration, velocity, color(255,0,0));
+        veh.type = type;
+        this.vehicles[j].push(veh);
+
+        if (type === 'Q') { // a control point vector
+          var target = createVector(cmd[2], cmd[3]);
+          var position = createVector(random(0, width), random(0, height));
+          var acceleration = createVector();
+          var velocity = p5.Vector.random2D();
+          veh.control = new Vehicle(3, target, position, acceleration, velocity, color(255,0,0));
+          this.vehicles[j].push(veh.control);
+        }
+      }
+    }
+  }
+
+  this.update = function() {
+
+    for (var j = 0; j < this.vehicles.length; j++) {
+      for (var i = 0; i < this.vehicles[j].length; i++) {
+        var x = this.vehicles[j][i].pos.x;
+        var y = this.vehicles[j][i].pos.y;
+        this.vehicles[j][i].update();
+        //this.vehicles[j][i].draw();
+      }
+    }
+    return this;
+  }
+
+  this.draw = function() {
+
+    var pg = this.font.parent._renderer, ctx = pg.drawingContext;
+
+    for (var j = 0; j < this.vehicles.length; j++) {
+
+      ctx.beginPath();
+
+      for (var i = 0; i < this.vehicles[j].length; i++) {
+        var vehicle = this.vehicles[j][i];
+        var x = vehicle.pos.x, y = vehicle.pos.y;
+        if (vehicle.type === 'M') {
+          ctx.moveTo(x,y);
+        } else if (vehicle.type === 'L') {
+          ctx.lineTo(x,y);
+        } else if (vehicle.type === 'Q') {
+          ctx.quadraticCurveTo(x, y, vehicle.control.pos.x, vehicle.control.pos.y);
+        } else if (vehicle.type === 'Z') {
+          ctx.closePath();
+        }
+      }
+      ctx.stroke();
+      ctx.fill();
+    }
+  }
+
+  this.initVehicles();
+}
+
+function splitPaths(cmds) {
+
+  function cmdToArr(cmd) {
+    var arr = [ cmd.type ];
+    if (cmd.type === 'M' || cmd.type === 'L') { // moveto or lineto
+      arr.push(cmd.x, cmd.y);
+    } else if (cmd.type === 'C') {
+      arr.push(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y);
+    } else if (cmd.type === 'Q') {
+      arr.push(cmd.x1, cmd.y1, cmd.x, cmd.y);
+    }
+    return arr;
+  }
+
+  var paths = [], current;
+  for (var i = 0; i < cmds.length; i++) {
+    if (cmds[i].type === 'M') {
+      if (current) {
+        paths.push(current);
+      }
+      current = [];
+    }
+    current.push(cmdToArr(cmds[i]));
+  }
+  paths.push(current);
+
+  return paths;
+}
+</script>
+</html>

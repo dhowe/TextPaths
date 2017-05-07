@@ -1,40 +1,3 @@
-(function() { // tests
-  var a, b, expected, i = 0;
-  a = [100, 100, 100, 500];
-  b = [500, 100, 100, 100];
-  expected = [1, 0];
-  result = bestPairings(a, b);
-  console.log(++i, result, arrayEquals(result, expected) ? 'Ok' : 'Fail!');
-
-  a = [0, 0, 1, 1, 2, 3];
-  b = [1, 1, 2, 2, 1, 0];
-  expected = [2, 0, 1];
-  result = bestPairings(a, b);
-  console.log(++i, result, arrayEquals(result, expected) ? 'Ok' : 'Fail!');
-
-  a = [];
-  b = [];
-  expected = [];
-  result = bestPairings(a, b);
-  console.log(++i, result, arrayEquals(result, expected) ? 'Ok' : 'Fail!');
-
-  a = [0, 0, 1, 1];
-  b = [0, 1, 1, 0];
-  expected = [0, 1];
-  result = bestPairings(a, b);
-  console.log(++i, result, arrayEquals(result, expected) ? 'Ok' : 'Fail!');
-
-})();
-
-function arrayEquals(a1, a2) {
-  if (!a1 || !a2 || a1.length !== a2.length)
-    return false;
-  for (var i = 0; i < a1.length; i++) {
-    if (a1[i] !== a2[i])
-      return false;
-  }
-  return true;
-}
 
 function bestPairings(a, b) {
 
@@ -58,7 +21,7 @@ function bestPairings(a, b) {
     }
     return costMatrix;
   }
-  
+
   if( a.length === 0 || b.length === 0) {
     return [];
   }

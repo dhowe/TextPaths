@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <script src="lib/munkres.js"></script>
-  <script src="pairings.js"></script>
   <script src="lib/p5.js"></script>
   <script src="vehicle.js"></script>
   <script src="wordlist.js"></script>
@@ -16,21 +15,73 @@
 
 <script>
 
-var v;
+var v,u,s,t,vs = [], dbgs;
+var pts = [309.41650390625, 322.3154296875, 353.62451171875, 322.3154296875, 381.0810546875, 291.3896484375, 408.53759765625, 260.4638671875, 408.73583984375, 205.3525390625, 408.73583984375, 148.6552734375, 380.6845703125, 118.1259765625, 352.63330078125, 87.5966796875, 310.20947265625, 87.5966796875, 266.59619140625, 87.5966796875, 238.44580078125, 117.53125, 210.29541015625, 147.4658203125, 210.29541015625, 209.3173828125, 210.29541015625, 259.869140625, 237.85107421875, 291.09228515625, 265.40673828125, 322.3154296875, 309.41650390625, 322.3154296875];
+var pts2 = [309.81298828125, 54.6884765625, 370.87158203125, 54.6884765625, 409.72705078125, 96.12109375, 448.58251953125, 137.5537109375, 448.58251953125, 205.3525390625, 448.58251953125, 272.953125, 409.52880859375, 314.08837890625, 370.47509765625, 355.2236328125, 309.81298828125, 355.2236328125, 246.97021484375, 355.2236328125, 208.70947265625, 312.6015625, 170.44873046875, 269.9794921875, 170.44873046875, 208.5244140625, 170.44873046875, 136.958984375, 209.205078125, 95.82373046875, 247.96142578125, 54.6884765625, 309.81298828125, 54.6884765625];
 function setup() {
 
   createCanvas(600, 600);
-  v = new Vroke('L',[100,100,100,500]);
-  setTimeout(function(){
-    v.reset('L', [new Point(500,100),new Point(100,100)]);
-  }, 2000);
+
+  var test = 1;
+  if (test==1) {
+    t= new Vroke('L', [100,100,100,500]);
+    setTimeout(function(){
+      //frameRate(10);
+      t.reset('Q', ptsToArr(pts2));
+    }, 2000);
+    vs.push(t);
+  }
+
+  if (test==2) {
+    s= new Vroke('Q',pts);
+    setTimeout(function(){
+      //frameRate(10);
+      s.reset('Q', ptsToArr(pts2));
+    }, 2000);
+    vs.push(s);
+  }
+
+  if (test==3) {
+    v = new Vroke('Q',pts);
+    setTimeout(function(){
+      //frameRate(10);
+      v.reset('L', [new Point(500,100),new Point(100,100)]);
+    }, 2000);
+    vs.push(v);
+  }
+
+  if (test==4) {
+    u = new Vroke('L',[100,100,100,500]);
+    setTimeout(function(){
+      u.reset('L', [new Point(100,500),new Point(500,500)]);
+    }, 2000);
+    vs.push(u);
+  }
+}
+
+function ptsToArr(p) {
+    var s = [];
+    for (var i = 0; i < p.length; i+=2) {
+      s.push(new Point(p[i], p[i+1]));
+    }
+    if (s.length != p.length/2)
+      throw Error("bad output");
+    return s;
 }
 
 function draw() {
 
   background(51);
   strokeWeight(1);
-  v.render();
+  for (var i = 0; i < vs.length; i++) {
+    vs[i].render();
+  }
+
+  if (0&&dbgs) {
+    for (var i = 0; i < dbgs.length; i++) {
+      ellipse(dbgs[i].x, dbgs[i].y, 5,5);
+    }
+  }
 }
 
 

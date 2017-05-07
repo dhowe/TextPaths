@@ -1,8 +1,148 @@
-var doBestPairings = 1;
+var doBestPairings = 0;
+
+function lineEquation(point1, point2) {
+
+	var lineObj = {
+		slope: (point1.y - point2.y) / (point1.x - point2.x)
+	}, parts;
+
+	lineObj.yIntercept = point1.y - lineObj.slope * point1.x;
+
+	lineObj.toString = function() {
+
+		if (Math.abs(lineObj.slope) === Infinity) {
+			return 'x = ' + point1.x;
+		}
+		else {
+			parts = [];
+
+			if (lineObj.slope !== 0) {
+				parts.push(lineObj.slope + 'x');
+			}
+
+			if (lineObj.yIntercept !== 0) {
+				parts.push(lineObj.yIntercept);
+			}
+
+			return 'y = ' + parts.join(' + ');
+		}
+	};
+
+	return lineObj;
+}
 
 function Point(x,y) {
   this.x = x;
   this.y = y;
+}
+
+function distance(p1, p2) {
+  var a = p1.x - p2.x;
+  var b = p1.y - p2.y;
+  return Math.sqrt(a * a + b * b);
+}
+
+function curveToLineAsCurve(type, pts, vroke) { // take 2
+
+  if (vroke.type != 'Q' || pts.length != 2)
+    throw Error('bad input'+vroke.type+ pts.length);
+
+  // var startIdx = minDist(vehicles, start);
+  // var endIdx = minDist(vehicles, end);
+  type = 'Q';
+
+  var vehicles = vroke.vehicles;
+  var start = pts[0];
+  var end = pts[1];
+  var dst = distance(start, end);
+  var numToAssign = vehicles.length - 2;
+  var interval = dst / (numToAssign + 1); // interval
+
+  //var lineEq = lineEquation(start, end);
+  vehicles[0].target.x = start.x;
+  vehicles[0].target.y = start.y;
+  vehicles[vehicles.length-1].target.x = end.x;
+  vehicles[vehicles.length-1].target.y = end.y;
+
+  // Determine line lengths
+  var xlen = end.x - start.x;
+  var ylen = end.y - start.y;
+
+  dbgs = [start];
+
+  // Determine hypotenuse length
+  var hlen = Math.sqrt(Math.pow(xlen,2) + Math.pow(ylen,2));
+
+  for (var i = 1; i < vehicles.length-1; i++) {
+
+    var smallerLen = interval * i;
+
+    // Determine the ratio between they shortened value and the full hypotenuse.
+    var ratio = smallerLen / hlen;
+
+    var smallerXLen = xlen * ratio;
+    var smallerYLen = ylen * ratio;
+
+    // The new X point is the starting x plus the smaller x length.
+    var smallerX = start.x + smallerXLen;
+
+    // Same goes for the new Y.
+    var smallerY = start.y + smallerYLen;
+
+    vehicles[i].target.x = smallerX;
+    vehicles[i].target.y = smallerY;
+
+    dbgs.push(new Point(smallerX, smallerY));
+  }
+
+  dbgs.push(end);
+}
+
+function maxDistIdx(pts, target) {
+  var idx = -1, maxDist = 0;
+  for (var i = 0; i < pts.length; i++) {
+    var d = distance(pts[i], target);
+    if (d > maxDist) {
+      maxDist = d;
+      idx = i;
+    }
+  }
+  return idx;
+}
+
+function minDistIdx(pts, target) {
+  var idx = -1, minDist = Number.MAX_VALUE;
+  for (var i = 0; i < pts.length; i++) {
+    var d = distance(pts[i], target);
+    if (d < minDist) {
+      minDist = d;
+      idx = i;
+    }
+  }
+  return idx;
+}
+
+
+function curveToLine(vroke) { // take 1
+  var maxDist = 0, maxI = -1, maxJ = -1, vehicles = vroke.vehicles;
+  for (var i = 0; i < vehicles.length; i++) {
+    for (var j = i+1; j < vehicles.length; j++) {
+      var d = distance(vehicles[i].target, vehicles[j].target);
+      if (d > maxDist) {
+        maxDist = d;
+        maxI = i;
+        maxJ = j;
+      }
+    }
+  }
+
+  for (var i = vehicles.length; i > -1; i--) {
+    if (i != maxI && i != maxJ)
+      vehicles.splice(i, 1);
+  }
+
+  if (this.vehicles.length != 2)
+    throw Error('bad count='+this.vehicles.length);
 }
 
 function pathToVrokes(path) {
@@ -17,6 +157,7 @@ function pathToVrokes(path) {
 
       if (last && last.type === 'Q' && qpts.length) {
         strokes.push(new Vroke(last.type, qpts));
+        //console.log(qpts);
         qpts = [];
       }
     }
@@ -25,6 +166,7 @@ function pathToVrokes(path) {
       // case: end quad (last=Q)
       if (last.type === 'Q' && qpts.length) {
         strokes.push(new Vroke(last.type, qpts));
+        //console.log(qpts);
         qpts = [];
       }
 
@@ -44,6 +186,7 @@ function pathToVrokes(path) {
 
       if (last.type === 'Q' && qpts.length) {
         strokes.push(new Vroke(last.type, qpts));
+        //console.log(qpts);
         qpts = [];
       }
     }
@@ -122,7 +265,7 @@ function Vroke(t, points) {
       var position = createVector(random(0, width), random(0, height));
       var acceleration = createVector();
       var velocity = p5.Vector.random2D();
-      this.vehicles.push(new Vehicle(dotSize, target, position, acceleration, velocity));
+      this.vehicles.push(new Vehicle(3, target, position, acceleration, velocity));
     }
   }
 
@@ -163,13 +306,10 @@ function Vroke(t, points) {
 
       }
       else { // new one is a line, remove extras
-
-        while (this.vehicles.length > 2) {
-          this.vehicles.splice(2, 1);
-        }
-
-        if (this.vehicles.length != 2)
-          throw Error('bad count');
+        //console.log('q -> l',this.vehicles);
+        curveToLineAsCurve(type, points, this);
+        type = 'Q';
+        //console.log('q -> l',type, this.vehicles);
       }
 
       this.type = type; // change type
@@ -193,13 +333,13 @@ function Vroke(t, points) {
       if (pairings.length !== points.length)
         throw Error('Bad pairings');
 
-      console.log('ok pairings', pairings);
+      //console.log('ok pairings', pairings);
     }
 
     // now set the targets
     for (var i = 0; i < points.length; i++) {
       var p = pairings[i];
-      console.log(i, pairings[i], points[i]);
+      //console.log(i, pairings[i], points[i]);
       this.vehicles[i].target.x = points[pairings[i]].x;
       this.vehicles[i].target.y = points[pairings[i]].y;
     }

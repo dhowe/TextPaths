@@ -1,5 +1,21 @@
-var strokes = [], word, font, dotSize = 3, sfe = 0.1, sfc = 0.1, pad = 100, timer = 6500;
-//var words = { 'communism':'共產主義' };
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <script src="lib/munkres.js"></script>
+  <script src="lib/p5.js"></script>
+  <script src="vehicle.js"></script>
+  <script src="wordlist.js"></script>
+  <script src="stroke-utils.js"></script>
+
+</head>
+
+<body>
+</body>
+
+<script>
+
+var strokes;
 
 function preload() {
   font = loadFont('ArialUnicode.ttf');
@@ -8,24 +24,24 @@ function preload() {
 function setup() {
 
   createCanvas(600, 400);
-  frameRate(10);
-  setupBoidsForWord('ok', sfe);
+  //frameRate(10);
+  setupBoidsForWord();
 }
 
 function keyReleased() {
-  var word = xwords[floor(random(xwords.length))];
-  setupBoidsForWord(xwords[word], sfe);
+  setupBoidsForWord();
 }
 
+function setupBoidsForWord() {
 
-function renderPair() {
-  var ewords = Object.keys(words);
-  var word = ewords[floor(random(ewords.length))];
-  setupBoidsForWord(words[word], sfe);
-  setTimeout(function(){
-    setupBoidsForWord(word, sfc);
-    setTimeout(renderPair, timer);
-  }, timer);
+  var fsize, x, y, bb, pad = 100, dotSize = 3, word = String.fromCharCode(floor(random(97, 97 + 26)));
+
+  fsize = fontSizeForBounds(font, word, width - pad, height - pad);
+  bb = font.textBounds(word, 0, 0, fsize);
+  x = (width-bb.w)/2, y = (height / 2) + (bb.h / 2);
+
+  textSize(fsize); // yuck
+  migrate(font._getPath(word, x, y, { sampleFactor: 0.4 }).commands);
 }
 
 function draw() {
@@ -36,33 +52,12 @@ function draw() {
     strokes[i].render();
 }
 
-var xwords = ['L', 'T', 'I', 'N', '4', 'F', 'O' ,'T','V', '7'];
-var qwords = [], widx = 0, stop = false;
-
-function setupBoidsForWord(word, sf) {
-
-  var fsize, x, y, bb;
-
-  //stop = stop
-  //word = words[floor(random(words.length))];
-  //word = qwords[++widx%qwords.length];
-  //
-  word = xwords[floor(random(xwords.length))];
-
-  fsize = fontSizeForBounds(font, word, width - pad, height - pad);
-  bb = font.textBounds(word, 0, 0, fsize);
-  x = (width-bb.w)/2, y = (height / 2) + (bb.h / 2);
-
-  textSize(fsize); // yuck
-  migrate(font._getPath(word, x, y, { sampleFactor: sf }).commands);
-}
-
 function migrate(path) {
 
   if (!frameCount) { // first-time
 
     strokes = pathToVrokes(path);
-    console.log(strokes);
+    //console.log(strokes);
     //logPath(path);
   }
   else {
@@ -107,3 +102,6 @@ function fontSizeForBounds(font, text, boundsWidth, boundsHeight) {
   }
   return fontSize;
 }
+
+</script>
+</html>
