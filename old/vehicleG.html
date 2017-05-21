@@ -1,0 +1,86 @@
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <script src="lib/munkres.js"></script>
+  <script src="lib/p5.js"></script>
+  <script src="vehicle.js"></script>
+  <script src="wordlist.js"></script>
+  <script src="stroke-utils.js"></script>
+
+</head>
+
+<body>
+</body>
+
+<script>
+
+var strokes;
+
+function preload() {
+  font = loadFont('ArialUnicode.ttf');
+}
+
+function setup() {
+
+  createCanvas(600, 400);
+  background(245);
+  doPath();
+}
+
+function doPath() {
+
+  var fsize = 200, x=10, y=width/2, dotSize = 3, word = 'Leggo';
+
+  stroke(0);
+  noFill();
+  textSize(fsize); // yuck
+  var path = font._getPath(word, x, y, { sampleFactor: 0.4 });
+
+  console.log(path);
+  renderPath(path.commands);
+}
+
+function renderPath(commands) {
+
+  var pg = font.parent._renderer, ctx = pg.drawingContext;
+
+  ctx.beginPath();
+  for (var i = 0; i < commands.length; i++) {
+
+    var cmd = commands[i];
+    if (typeof cmd.vehicle === 'undefined') {
+      cmd.vehicle = new Vehicle();
+      var target = createVector(points[i], points[i+1]);
+      var position = createVector(random(0, width), random(0, height));
+      var acceleration = createVector();
+      var velocity = p5.Vector.random2D();
+      this.vehicles.push(new Vehicle(3, target, position, acceleration, velocity));
+    }
+
+    if (cmd.type === 'M') {
+      ctx.moveTo(cmd.x, cmd.y);
+    } else if (cmd.type === 'L') {
+      ctx.lineTo(cmd.x, cmd.y);
+    } else if (cmd.type === 'Q') {
+      ctx.quadraticCurveTo(cmd.x1, cmd.y1, cmd.x, cmd.y);
+    } else if (cmd.type === 'Z') {
+      ctx.closePath();
+    }
+  }
+
+  ctx.stroke();
+
+  return this;
+}
+
+function drawx() {
+
+  background(51);
+  strokeWeight(1);
+  for (var i = 0; i < vehicles.length; i++)
+    vehicles[i].update().draw();
+}
+
+</script>
+</html>

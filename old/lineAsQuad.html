@@ -1,0 +1,67 @@
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <script src="lib/munkres.js"></script>
+  <script src="lib/p5.js"></script>
+  <script src="vehicle.js"></script>
+  <script src="wordlist.js"></script>
+  <script src="stroke-utils.js"></script>
+</head>
+
+<body>
+</body>
+
+<script>
+
+var letter, font;
+
+function setup() {
+
+  createCanvas(600, 400);
+  background(245);
+  loadFont('ArialUnicode.ttf', function(f) {
+    font = f;
+    /*for (var i = 0; i < this.vehicles[j].length; i++) {
+      var vehicle = this.vehicles[j][i];
+      var x = vehicle.pos.x, y = vehicle.pos.y;
+      if (vehicle.type === 'M') {
+        ctx.moveTo(x,y);
+      } else if (vehicle.type === 'L') {
+        ctx.lineTo(x,y);
+      } else if (vehicle.type === 'Q') {
+        ctx.quadraticCurveTo(x, y, vehicle.control.pos.x, vehicle.control.pos.y);
+      } else if (vehicle.type === 'Z') {
+        ctx.closePath();
+      }
+    }
+    ctx.stroke();
+    ctx.fill();*/
+  });
+}
+
+function draw() {
+
+  background(245);
+  if (!font) return;
+  var pg = font.parent._renderer, ctx = pg.drawingContext;
+  background(200);
+  ctx.beginPath();
+  ctx.moveTo(100,100);
+  ctx.lineTo(500,200);
+  ctx.closePath();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(100,200);
+  ctx.quadraticCurveTo(mouseX, mouseY, 500, 300);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(20,20);
+  ctx.quadraticCurveTo(20,100,200,20);
+  ctx.stroke();
+}
+
+</script>
+</html>

@@ -1,0 +1,22 @@
+
+<!DOCTYPE html>
+<html xmlns = "http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <script src="lib/tone.min.js" ></script>
+</head>
+<body>
+<script type="text/javascript">
+
+window.onload = function () {
+
+  //create a synth and connect it to the master output (your speakers)
+  var synth = new Tone.Synth().toMaster();
+
+  //play a middle 'C' for the duration of an 8th note
+  synth.triggerAttackRelease("C4", "8n");
+};
+
+</script>
+</body>
+</html>

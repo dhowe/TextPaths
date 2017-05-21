@@ -1,34 +1,34 @@
-//var vehicles = [];
-
 function Vehicle(radius, target, position, acceleration, velocity, col) {
 
   this.maxspeed = 10;
   this.maxforce = 2;
   this.arriveDistance = 100;
   this.fleeRadius = 100;
-  this.pos = position;
-  this.target = target;
-  this.vel = velocity;
-  this.acc = acceleration;
   this.radius = radius;
-  this.color = col || color(255,255,255);
-
-  //vehicles.push(this);
+  this.col = col || '#f00';
+  this.reset(target, position, acceleration, velocity);
 }
 
-/*Vehicle.prototype.destroy = function () {
-  var idx = vehicles.indexOf(this);
-  vehicles.splice(idx, 1);
+Vehicle.prototype.reset = function (target, position, acceleration, velocity) {
+  this.target = target;
+  this.pos = position;
+  this.acc = acceleration;
+  this.vel = velocity;
+}
+
+Vehicle.prototype.destroy = function () {
   delete this.pos;
   delete this.target;
   delete this.vel;
   delete this.acc;
-  delete this.color;
-}*/
+  delete this.col;
+}
 
 Vehicle.prototype.copy = function () {
-  return new Vehicle(this.radius, this.target.copy(), this.pos.copy(), this.acc.copy(), this.vel.copy());
+  return new Vehicle(this.radius, this.target.copy(),
+    this.pos.copy(), this.acc.copy(), this.vel.copy());
 }
+
 Vehicle.prototype._behaviors = function () {
   var arrive = this.arrive(this.target);
   var mouse = createVector(mouseX, mouseY);
@@ -39,22 +39,27 @@ Vehicle.prototype._behaviors = function () {
   this.applyForce(flee);
   return this;
 }
+
 Vehicle.prototype.setTarget = function (t) {
   this.target = t;
   return this;
 }
+
 Vehicle.prototype.setColor = function (c) {
-  this.color = c;
+  this.col = c;
   return this;
 }
+
 Vehicle.prototype.setSize = function (s) {
   this.radius = s;
   return this;
 }
+
 Vehicle.prototype.applyForce = function (f) {
   this.acc.add(f);
   return this;
 }
+
 Vehicle.prototype.arrive = function (target) {
   var desired = p5.Vector.sub(target, this.pos);
   var d = desired.mag();
@@ -67,6 +72,7 @@ Vehicle.prototype.arrive = function (target) {
   steer.limit(this.maxforce);
   return steer;
 }
+
 Vehicle.prototype.flee = function (target) {
   var desired = p5.Vector.sub(target, this.pos);
   var d = desired.mag();
@@ -80,6 +86,7 @@ Vehicle.prototype.flee = function (target) {
     return createVector(0, 0);
   }
 }
+
 Vehicle.prototype.update = function () {
   this._behaviors();
   this.pos.add(this.vel);
@@ -87,8 +94,10 @@ Vehicle.prototype.update = function () {
   this.acc.mult(0);
   return this;
 }
-Vehicle.prototype.draw = function () {
-  stroke(this.color);
+
+Vehicle.prototype.draw = function (ctx) {
+  noFill();
+  stroke('#f00');
   strokeWeight(this.radius);
   point(this.pos.x, this.pos.y);
   return this;

@@ -1,0 +1,281 @@
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <script src="lib/munkres.js"></script>
+  <script src="lib/p5.js"></script>
+  <script src="lib/p5.tone.js"></script>
+  <script src="vehicle.js"></script>
+  <script src="wordlist.js"></script>
+  <script src="stroke-utils.js"></script>
+</head>
+
+<body>
+</body>
+
+<script>
+
+// NEXT: morph to next letter, word -> word
+
+var letter, font, synths, sidx = 0,
+  notes = [0,2,4,5,7,9], minOctave = 3, maxOctave = 6;
+
+function getNote(v) {
+
+  if (!v || !v.parent) throw Error('bad arg');
+
+  var bb = v.parent.bounds;
+  if (v.target.y < bb.y || v.target.y > bb.y+bb.h)
+    return 0;
+
+  var octave = floor(map(v.target.y, bb.y, bb.y+bb.h, maxOctave, minOctave)); // 24 - 108
+  if (octave < 2 ||  octave > 9)
+    return 0;
+
+  var interval = floor(map(v.target.x, bb.x, bb.x+bb.w, 0, notes.length)); // 24 - 108
+  if (interval < 0 || interval > notes.length)
+    return 0;
+
+  var note = (octave * 12) + notes[interval];
+  if (note < (minOctave * 12) || note > (maxOctave * 12 + notes[notes.length-1]) )
+    throw Error('bad note: '+note);
+
+  return note;
+}
+
+function setup() {
+
+  createCanvas(600, 400);
+  background(245);
+
+  loadFont('ArialUnicode.ttf', function(f) {
+    letter = new Letter(f, randLetter(), 200, 300, 200);
+  });
+
+  synths = new Array(8);
+  for (var i = 0; i < synths.length; i++) {
+    synths[i] = new Tone.Synth().toMaster();
+  }
+
+  Vehicle.prototype.update = function () {
+    this._behaviors();
+
+    var now = +new Date();
+    var d = dist(this.target.x, this.target.y, this.pos.x, this.pos.y);
+    if (d && now > (this.playTime || 0) + 50) {
+      // params: distToTarget, velocity, x/y pos.
+      if (d > this.lastDist) {
+        var note = getNote(this);
+        if (note) {
+          console.log('play', note);
+          synths[++sidx%synths.length].triggerAttackRelease(midiToFreq(note), "128n");
+          this.playTime = +new Date();
+        }
+      }
+    }
+    this.lastDist = d;
+
+    //console.log(d);
+    this.pos.add(this.vel);
+    this.vel.add(this.acc);
+    this.acc.mult(0);
+    return this;
+  }
+}
+
+function draw() {
+
+  background(245);
+  if (letter) {
+    letter && letter.update().draw();
+    noFill();
+    rect(letter.bounds.x,letter.bounds.y,letter.bounds.w,letter.bounds.h);
+  }
+
+}
+
+function keyReleased() {
+
+  letter.morph(randLetter());
+}
+
+function Letter(font, letter, x, y, fsize) {
+
+  this.font = font;
+  this.vehicles = [];
+  this.bounds = font.textBounds(letter, x, y, fsize);
+  this.glyph = font._getGlyphs(letter)[0]; // not needed
+  this.paths = splitPaths(this.glyph.getPath(x, y, fsize).commands);
+
+  this.morph = function(letter) {
+
+    var current = this.paths.length;
+    this.glyph = font._getGlyphs(letter)[0]; // not needed
+    this.paths = splitPaths(this.glyph.getPath(x, y, fsize).commands);
+    var difference = this.paths.length - current;
+    //console.log(current, this.vehicles.length, '->', this.paths.length);
+    return;
+    //console.log(word+': '+nextSet.length+' diff='+difference);
+    //logPath(path);
+
+    if (difference > 0) { // fewer, add some
+
+      for (var i = 0; i < difference; i++) {
+        var randomIndex = floor(random(strokes.length));
+        var v = strokes[randomIndex].copy();
+        strokes.splice(randomIndex, 0, v);
+      }
+
+    } else if (difference < 0) { // more, remove some
+
+      for (var i = 0; i < -difference; i++) {
+        var randomIndex = floor(random(strokes.length));
+        strokes.splice(randomIndex, 1);
+      }
+    }
+
+    if (current != nextSet.length)
+      throw Error('invalid state: word='+word+'('+nextSet.length+') strokes='+strokes.length);
+
+    // set targets
+    for (var j = 0; j < strokes.length; j++) {
+      strokes[j].resetTargets(nextSet[j]);
+    }
+
+    for (var j = 0; j < this.vehicles.length; j++) {
+      for (var i = 0; i < this.vehicles[j].length; i++) {
+        var x = this.vehicles[j][i].pos.x;
+        var y = this.vehicles[j][i].pos.y;
+      }
+    }
+  }
+
+  this.initVehicles = function() {
+
+    for (var j = 0; j < this.paths.length; j++) {
+      for (var i = 0; i < this.paths[j].length; i++) {
+
+        this.vehicles[j] = this.vehicles[j] || [];
+        var cmd = this.paths[j][i], type = cmd.shift();
+        if (type === 'Z') continue;
+
+        var target = createVector(cmd[0], cmd[1]);
+        var position = createVector(random(0, width), random(0, height));
+        var acceleration = createVector();
+        var velocity = p5.Vector.random2D();
+        var veh = new Vehicle(5, target, position, acceleration, velocity, color(255,0,0));
+        veh.parent = this;
+        veh.type = type;
+        this.vehicles[j].push(veh);
+
+        if (veh.type === 'L') { // convert lines to quads
+          veh.type = 'Q';
+          var lastX = last[last.length-2];
+          var lastY = last[last.length-1];
+          //var lastY = last.length > 2 ? last[3] : last[1];
+          var midX = cmd[0] - ((cmd[0] - lastX) / 2);
+          var midY = cmd[1] - ((cmd[1] - lastY) / 2);
+          cmd = [ midX, midY, cmd[0], cmd[1] ];
+        }
+
+        if (veh.type === 'Q') { // add a control point vector (TODO: multiple)
+          veh.target = createVector(cmd[2], cmd[3]);
+          var target = createVector(cmd[0], cmd[1]);
+          var position = createVector(random(0, width), random(0, height));
+          var acceleration = createVector();
+          var velocity = p5.Vector.random2D();
+          veh.control = new Vehicle(5, target, position, acceleration, velocity, color(255,0,255));
+          veh.control.parent = this;
+          this.vehicles[j].push(veh.control);
+        }
+
+        last = cmd;
+      }
+    }
+
+  }
+
+  this.update = function() {
+
+    for (var j = 0; j < this.vehicles.length; j++) {
+      for (var i = 0; i < this.vehicles[j].length; i++) {
+        var x = this.vehicles[j][i].pos.x;
+        var y = this.vehicles[j][i].pos.y;
+        this.vehicles[j][i].update();
+        //this.vehicles[j][i].draw();
+      }
+    }
+    return this;
+  }
+
+  this.draw = function() {
+    strokeWeight(1);
+    var pg = this.font.parent._renderer, ctx = pg.drawingContext;
+
+    for (var j = 0; j < this.vehicles.length; j++) {
+
+      ctx.beginPath();
+
+      for (var i = 0; i < this.vehicles[j].length; i++) {
+        var vehicle = this.vehicles[j][i];
+        var x = vehicle.pos.x, y = vehicle.pos.y;
+        if (vehicle.type === 'M') {
+          ctx.moveTo(x,y);
+        } else if (vehicle.type === 'L') {
+          ctx.lineTo(x,y);
+        } else if (vehicle.type === 'Q') {
+          ctx.quadraticCurveTo(vehicle.control.pos.x, vehicle.control.pos.y, x, y);
+        } else if (vehicle.type === 'Z') {
+          ctx.closePath();
+        }
+      }
+      ctx.stroke();
+      //ctx.fill();
+    }
+  }
+
+  this.initVehicles();
+}
+
+function splitPaths(cmds) {
+
+  function cmdToArr(cmd) {
+    var arr = [ cmd.type ];
+    if (cmd.type === 'M' || cmd.type === 'L') { // moveto or lineto
+      arr.push(cmd.x, cmd.y);
+    } else if (cmd.type === 'C') {
+      arr.push(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y);
+    } else if (cmd.type === 'Q') {
+      arr.push(cmd.x1, cmd.y1, cmd.x, cmd.y);
+    }
+    return arr;
+  }
+
+  var paths = [], current;
+  for (var i = 0; i < cmds.length; i++) {
+    if (cmds[i].type === 'M') {
+      if (current) {
+        paths.push(current);
+      }
+      current = [];
+    }
+    current.push(cmdToArr(cmds[i]));
+  }
+  paths.push(current);
+
+  return paths;
+}
+
+function randLetter() {
+
+  return Math.random() < .5 ?
+    String.fromCharCode(floor(random(65, 90))) :
+    String.fromCharCode(floor(random(97, 122)));
+}
+
+function midiToFreq(m) {
+  return 440 * Math.pow(2, (m - 69) / 12);
+};
+
+</script>
+</html>
