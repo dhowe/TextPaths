@@ -14,10 +14,12 @@
 
 <script>
 
-// NEXT:  Refactor Letter, chinese, word -> word, bestPairings
+// NEXT: Refactor Letter, chinese, word -> word
+// OPT:  do bestPairings
+// BUG:  fix fill for interior paths (if contained)
 
 var letter, font;
-var seq = '', sidx = 0, test = 0; // tmp
+var seq = 'BASDFA', sidx = 0, test = 0; // tmp
 
 function setup() {
 
@@ -291,7 +293,7 @@ function Letter(font, letter, x, y, fsize) {
         }
       }
       ctx.stroke();
-      //ctx.fill();
+      ctx.fill();
     }
     ctx.restore();
   }
