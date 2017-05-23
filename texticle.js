@@ -1,70 +1,84 @@
-<html>
-
-<head>
-  <meta charset="UTF-8">
-  <script src="lib/munkres.js"></script>
-  <script src="lib/p5.js"></script>
-  <script src="vehicle.js"></script>
-  <script src="wordlist.js"></script>
-  <script src="stroke-utils.js"></script>
-</head>
-
-<body>
-</body>
-
-<script>
-
-// NEXT: Refactor Letter, chinese, word -> word
+// TODO: handle alignments?
 // OPT:  do bestPairings
 // BUG:  fix fill for interior paths (if contained)
 
-var letter, font;
-var seq = 'BASDFA', sidx = 0, test = 0; // tmp
+function Texticle(txt, x, y, fsize, font) {
 
-function setup() {
+  this.init = function(txt, x, y, fsize, font) {
 
-  createCanvas(600, 400);
-  background(245);
-  loadFont('fonts/ArialUnicode.ttf', function(f) {
-    if (seq.length)
-      letter = new Letter(f, seq.charAt(sidx++), 200, 300, 200);
-    else
-      letter = new Letter(f, Letter.random(), 200, 300, 200);
-  });
-  setTimeout(next, 3000);
-}
-
-function draw() {
-
-  background(245);
-  letter && letter.update().draw();
-}
-
-function next() {
-  if (seq.length)
-    letter.morph(seq.charAt(sidx++));
-  else
-    letter.morph(Letter.random());
-  test || setTimeout(next, 2000);
-}
-
-function keyReleased() {
-  if (!test) {
-    test = 1;
-    return;
+    this.x = x;
+    this.y = y;
+    this.text = txt;
+    this.font = font || textFont();
+    this.fontSize = fsize || textSize();
+    this.letters = this.createLetters(txt, x, y, this.fontSize);
   }
-  key === ' ' && next();
-}
 
-function Letter(font, letter, x, y, fsize) {
+  this.createLetters = function(txt, x, y, fsize) {
 
-  this.x = x;
-  this.y = y;
-  this.font = font;
-  this.vehicles = []; // 2d array: [paths][vehicles]
-  this.paths = splitPaths(font._getGlyphs(letter)[0].getPath(this.x, this.y, fsize).commands);
+    var l = [], font = this.font;
+    if (!(typeof font === 'object' && font.font && font.font.supported))
+      throw Error("Not an opentype-compatible font", font)
 
-  console.log(letter, this.paths.length+'paths');
+    font.font.forEachGlyph(txt, x, y, fsize, 0,
+      function(glyph, gx, gy, sz, opts) {
+        var char = String.fromCharCode(glyph.unicode);
+        l.push(new Letter(font, char, gx, gy, fsize));
+      }
+    );
+    return l;
+  }
+
+  this.pathCount = function() {
+
+    var total = 0;
+    for (var i = 0; i < this.letters.length; i++) {
+      total += this.letters[i].pathCount();
+    }
+    return total;
+  }
+
+  this.morph = function(txt, x, y, fs) {
+
+    var oldCount = this.pathCount();
+    var newCount = 0;
+    var glyphs = this.font._getGlyphs(txt);
+    for (var i = 0; i < glyphs.length; i++) {
+      var gpath = glyphs[i].getPath(x, y, this.fontSize),
+        paths = splitPaths(gpath.commands);
+      newCount += paths.length;
+    }
+    console.log(oldCount + " -> " + newCount);
+  }
+
+  this.draw = function() {
+    for (var i = 0; i < this.letters.length; i++) {
+      this.letters[i].update().draw();
+    }
+  };
+
+  this.init.apply(this, arguments);
+};
+
+function Letter(font, glyph, x, y, fsize) {
+
+  this.init = function(font, glyph, x, y, fsize) {
+
+    this.x = x;
+    this.y = y;
+    this.font = font;
+    this.vehicles = []; // 2d array: [paths][vehicles]
+
+    glyph = (typeof glyph === 'object') ? glyph : font._getGlyphs(glyph)[0];
+    var glyphPath = glyph.getPath(this.x, this.y, fsize || textSize());
+
+    this.paths = splitPaths(glyphPath.commands);
+    this.initVehicles();
+  }
+
+  this.pathCount = function() {
+    return this.paths.length;
+  }
 
   this.morph = function(letter) {
 
@@ -79,8 +93,6 @@ function Letter(font, letter, x, y, fsize) {
     var current = this.vehicles.length;
     this.paths = splitPaths(font._getGlyphs(letter)[0].getPath(this.x, this.y, fsize).commands);
     var difference = this.paths.length - current;
-
-    console.log(letter, this.paths.length+'paths', 'diff='+difference);
 
     // TODO: smarter/smoother adding/deleting of vehicle arrays
 
@@ -118,7 +130,6 @@ function Letter(font, letter, x, y, fsize) {
 
   this.resetVehicles = function(idx) {
 
-    //console.log('resetVehicles: path['+idx+']');
     var points = this.paths[idx]; // points for this path
     var vehicles = this.vehicles[idx]; // vehicles for the last path
 
@@ -129,18 +140,12 @@ function Letter(font, letter, x, y, fsize) {
     for (var i = 0; i < vehicles.length; i++) {
       vehicles[i].control = undefined;
     }
-    //console.log(points[1], vehicles[0]);
-    //console.log("COUNT: total="+totalPts+", points="+points.length+", veh="+vehicles.length);
 
-    // WORKING HERE: NEXT: compute difference, equalize count of control points
     var difference = totalPts - vehicles.length;
-    //console.log('d='+difference);
 
     // add or remove vehicles to match the total point counts
     // then loop through, assigning data and control points
     if (difference > 0) { // add
-
-      //console.log('adding '+difference+' vehicles');
 
       for (var i = 0; i < difference; i++) {
         var randomIndex = floor(random(vehicles.length));
@@ -150,8 +155,6 @@ function Letter(font, letter, x, y, fsize) {
 
     } else if (difference < 0) {
 
-      //console.log('removing '+difference+' vehicles');
-
       for (var i = 0; i < difference * -1; i++) {
         var randomIndex = floor(random(vehicles.length));
         vehicles.splice(randomIndex, 1);
@@ -160,8 +163,6 @@ function Letter(font, letter, x, y, fsize) {
 
     if (totalPts != vehicles.length)
       throw Error('2. invalid state: letter='+letter+' ('+totalPts+') '+vehicles.length);
-
-    //console.log('path['+idx+'] '+vehicles.length+'/'+this.vehicles[idx].length+' vehicles');
 
     var last, vIdx = 0;
     for (var i = 0; i < points.length; i++) {
@@ -186,8 +187,6 @@ function Letter(font, letter, x, y, fsize) {
       if (veh.type === 'Q') { // add the control point vehicle's target
 
         veh.target = createVector(cmd[2], cmd[3]);
-        //console.log(i+')' + veh.target.x+','+veh.target.y);
-
         veh.control = vehicles[vIdx++];
         veh.control.target =  createVector(cmd[0], cmd[1]);
         veh.control.type = 'C';
@@ -195,9 +194,6 @@ function Letter(font, letter, x, y, fsize) {
 
       last = cmd;
     }
-    // console.log('V: '+this.vehicles[0].length);
-    // if (this.vehicles[0].length===9)
-    //   logV(this.vehicles[0]);
   }
 
   this.countPoints = function(path) {
@@ -254,6 +250,7 @@ function Letter(font, letter, x, y, fsize) {
         last = cmd;
       }
     }
+
     //logV(this.vehicles[0]);
   }
 
@@ -263,19 +260,20 @@ function Letter(font, letter, x, y, fsize) {
       for (var i = 0; i < this.vehicles[j].length; i++) {
         var x = this.vehicles[j][i].pos.x;
         var y = this.vehicles[j][i].pos.y;
-        this.vehicles[j][i].update();//.draw();
+        this.vehicles[j][i].update();
       }
     }
     return this;
   }
 
   this.draw = function() {
+
     var pg = this.font.parent._renderer, ctx = pg.drawingContext;
 
     ctx.save();
     ctx.lineWidth = 1;
-    ctx.fillStyle = '#fff';
-    ctx.strokeStyle = '#f00';
+    ctx.fillStyle = '#c00';
+    ctx.strokeStyle = '#fff';
     for (var j = 0; j < this.vehicles.length; j++) {
       ctx.beginPath();
 
@@ -293,13 +291,22 @@ function Letter(font, letter, x, y, fsize) {
         }
       }
       ctx.stroke();
-      ctx.fill();
+      Letter.doFill && ctx.fill();
     }
     ctx.restore();
   }
 
-  this.initVehicles();
+  this.init.apply(this, arguments);
 }
+
+Letter.random = function() {
+  return Math.random() < .5 ?
+    String.fromCharCode(floor(random(65, 90))) :
+    String.fromCharCode(floor(random(97, 122)));
+}
+
+Letter.doFill = false;
+
 
 function splitPaths(cmds) {
 
@@ -330,12 +337,6 @@ function splitPaths(cmds) {
   return paths;
 }
 
-Letter.random = function() {
-  return Math.random() < .5 ?
-    String.fromCharCode(floor(random(65, 90))) :
-    String.fromCharCode(floor(random(97, 122)));
-}
-
 function logV(v) {
   setTimeout(function() {
     var s = '';
@@ -344,6 +345,3 @@ function logV(v) {
     console.log(s);
   }, 1500);
 }
-
-</script>
-</html>

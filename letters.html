@@ -1,0 +1,66 @@
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <script src="lib/munkres.js"></script>
+  <script src="lib/p5.js"></script>
+  <script src="vehicle.js"></script>
+  <script src="wordlist.js"></script>
+  <script src="letter.js"></script>
+</head>
+
+<body>
+</body>
+
+<script>
+
+// NEXT: Refactor Letter, chinese, word -> word
+// OPT:  do bestPairings
+// BUG:  fix fill for interior paths (if contained)
+
+var letter, seq = 'BASDFA', sidx = -1, test = 0; // tmp
+
+function setup() {
+
+  createCanvas(600, 400);
+  background(245);
+  loadFont('fonts/ArialUnicode.ttf', function(f) {
+    textFont(f,200);
+    letter = new Letter(f,'H', 200, 300,300);
+  });
+  setTimeout(next, 3000);
+}
+
+function draw() {
+
+  background(0);
+  letter && letter.update().draw();
+}
+
+function next() {
+  if (seq.length)
+    letter.morph(seq[++sidx%seq.length]);
+  else
+    letter.morph(Letter.random());
+  test || setTimeout(next, 2000);
+}
+
+function keyReleased() {
+  if (!test) {
+    test = 1;
+    return;
+  }
+  key === ' ' && next();
+}
+
+function logV(v) {
+  setTimeout(function() {
+    var s = '';
+    for (var i = 0; i < v.length; i++)
+      s += "("+round(v[i].pos.x)+','+round(v[i].pos.y)+") ";
+    console.log(s);
+  }, 1500);
+}
+
+</script>
+</html>
