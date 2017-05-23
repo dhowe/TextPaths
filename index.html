@@ -1,0 +1,68 @@
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script src="lib/munkres.js"></script>
+  <script src="lib/p5.js"></script>
+  <script src="vehicle.js"></script>
+  <script src="wordlist.js"></script>
+  <script src="letter.js"></script>
+</head>
+<script>
+
+var txt;
+
+function setup() {
+
+  createCanvas(600, 400);
+  background(245);
+  textAlign(CENTER, CENTER);
+  loadFont('fonts/ArialUnicode.ttf', function(f) {
+    textFont(f, 200);
+    renderPair();
+  });
+}
+
+function draw() {
+
+  background(0);
+  if (txt) {
+    txt.draw();
+    fill(200,0,0,64);
+
+    //text(txt.text, width/2, height/2);
+    noFill();
+    var b = textFont().textBounds(txt.text, width/2, height/2);
+    //console.log(b);
+    stroke(255);
+    //rect(b.x,b.y,b.w,b.h);
+    noStroke();
+  }
+}
+
+function renderPair() {
+
+  var font = textFont();
+  console.log(font);
+  var keys = Object.keys(words);
+  var word = keys[floor(random(keys.length))]
+
+  textSize(fontSizeForBounds(font, word, width-100, height));
+  txt = new Texticle(word, 50, height/2 + textAscent()/2 - 20);
+  setTimeout(function() {
+    textSize(fontSizeForBounds(font, words[word], width-100, height));
+    txt = new Texticle(words[word], 50, height/2 + textAscent()/2 - 20);
+    setTimeout(renderPair, 2000);
+  }, 2000);
+}
+
+function fontSizeForBounds(font, text, boundsWidth, boundsHeight) {
+  boundsWidth = boundsWidth || width;
+  boundsHeight = boundsHeight || height;
+  var fontSize = 12, bbox = { w: 0, h: 0 };
+  while (bbox.w < boundsWidth && bbox.h < boundsHeight) {
+    bbox = font.textBounds(text, 0, 0, fontSize += 2);
+  }
+  return fontSize;
+}
+</script>
+</html>
