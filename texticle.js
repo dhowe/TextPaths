@@ -6,7 +6,7 @@ function Texticle(txt, options) {
 
   this.init = function(txt, options) {
 
-    console.log(options);
+    console.log('Texticle',options);
 
     this.text = txt;
     this.x = options && options.x || 0;
