@@ -2,22 +2,24 @@
 // OPT:  do bestPairings
 // BUG:  fix fill for interior paths (if contained)
 
-function Texticle(font, txt, options) {
+function Texticle(txt, options) {
 
-  this.init = function(txt, x, y, fsize, font) {
+  this.init = function(txt, options) {
 
-    this.x = x;
-    this.y = y;
-    this.text = txt;
-    this.font = font || textFont();
-    this.fontSize = fsize || textSize();
-    this.letters = this.createLetters(txt, x, y, this.fontSize);
-    /*console.log(options);
+    console.log(options);
+
     this.text = txt;
     this.x = options && options.x || 0;
     this.y = options && options.y || 0;
     this.font = options && options.font || textFont();
     this.fontSize = options && options.fontSize || textSize();
+
+    // if (options && options.w && options.h) {
+    //
+    //   this.y += height/2 + options.h/2;
+    //   this.x = options && options.padding;
+    //   log
+    // }
 
     // if (args.length === 2 && typeof x === 'object') {
     //   //txt = new Texticle(word, 50, height/2 + metrics.h/2);
@@ -25,7 +27,7 @@ function Texticle(font, txt, options) {
     //   textSize(metrics.fontSize);
     // }
 
-    this.letters = this.createLetters(this.text, this.x, this.y, this.fontSize);*/
+    this.letters = this.createLetters(this.text, this.x, this.y, this.fontSize);
   }
 
   this.createLetters = function(txt, x, y, fsize) {
@@ -351,17 +353,7 @@ function splitPaths(cmds) {
   return paths;
 }
 
-function fontSizeForBounds(font, text, boundsWidth, boundsHeight) {
 
-  boundsWidth = boundsWidth;
-  boundsHeight = boundsHeight;
-  var fontSize = 12, bbox = { w: 0, h: 0 };
-  while (bbox.w < boundsWidth && bbox.h < boundsHeight) {
-    bbox = font.textBounds(text, 0, 0, fontSize += 2);
-  }
-  bbox.fontSize = fontSize;
-  return bbox; // returns {x,y,w,h,fontSize}
-}
 
 function logV(v) {
   setTimeout(function() {

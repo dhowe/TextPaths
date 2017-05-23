@@ -12,39 +12,64 @@
 // NEXT: handle alignments?
 //   implement Texticle.morph()
 
-var txt, font, bb, list = Object.keys(words);
+var txt,oy, f, bb, bb2, fs, word, list = Object.keys(words), word = 'arDen';
+
+function preload() {
+  f = loadFont('fonts/ArialUnicode.ttf');
+}
 
 function setup() {
 
   createCanvas(600, 400);
   background(245);
-  loadFont('fonts/ArialUnicode.ttf', function(f) {
-    font = f;
-    next();
-  });
+  bb = maxTextSize(f, word, width-100, height-100, 50);
 }
 
 function draw() {
 
+  noFill();
   background(0);
-  txt && txt.draw();
+  stroke(0,200,0);
+  rect(50,50,500,300);
+  line(0,height/2,width,height/2);
+  //line(0,height/2+oy,width,height/2+oy);
+  stroke(200);
+
+  rect(bb.x-bb.advance, bb.y-bb.h/2,bb.w,bb.h);
+
+  textSize(bb.fontSize);
+  text(word, 50-bb.advance, bb.y-bb.ascent-bb.h/2);
 }
 
 function next() {
 
-  var font = textFont(), word = list[floor(random(list.length))]
-
-  var metrics = Texticle.optimalMetrics(font, word, width-100, height-100);
-  textSize(metrics.fontSize);
-  if (!txt)
-    txt = new Texticle(f, word, { x: 0, y: 0, w: width, h: height, padding: 50 });
+  var f = textFont();
+  word = 'g'+list[floor(random(list.length))];
+  if (!txt) {
+    bb = maxTextSize(f, word, width-100, height-100, 50);
   }
   else {
     txt.morph(word, 50, height/2 + metrics.h/2);
   }
 
-  setTimeout(next, 2000);
+  setTimeout(next, 20000000);
 }
+
+function maxTextSize(font, text, boundsWidth, boundsHeight, padding) {
+  var fontSize = 12, bbox = { w: 0, h: 0 };
+  while (bbox.w < boundsWidth && bbox.h < boundsHeight)
+    bbox = font.textBounds(text, 0, 0, fontSize += 2);
+
+  bbox.ascent = bbox.y;
+  bbox.x = padding + bbox.advance;
+  bbox.y = padding + boundsHeight/2;
+  bbox.font = font;
+  bbox.fontSize = fontSize;
+  bbox.x -= (bbox.w-boundsWidth)/2; // horiz center if excess
+  //bbox.y += (padding + boundsHeight/2;
+  return bbox;
+}
+
 
 </script>
 </html>
