@@ -2,7 +2,7 @@
 // OPT:  do bestPairings
 // BUG:  fix fill for interior paths (if contained)
 
-function Texticle(txt, x, y, fsize, font) {
+function Texticle(font, txt, options) {
 
   this.init = function(txt, x, y, fsize, font) {
 
@@ -12,18 +12,32 @@ function Texticle(txt, x, y, fsize, font) {
     this.font = font || textFont();
     this.fontSize = fsize || textSize();
     this.letters = this.createLetters(txt, x, y, this.fontSize);
+    /*console.log(options);
+    this.text = txt;
+    this.x = options && options.x || 0;
+    this.y = options && options.y || 0;
+    this.font = options && options.font || textFont();
+    this.fontSize = options && options.fontSize || textSize();
+
+    // if (args.length === 2 && typeof x === 'object') {
+    //   //txt = new Texticle(word, 50, height/2 + metrics.h/2);
+    //   var metrics = fontSizeForBounds(font, word, width-100, height-100);
+    //   textSize(metrics.fontSize);
+    // }
+
+    this.letters = this.createLetters(this.text, this.x, this.y, this.fontSize);*/
   }
 
   this.createLetters = function(txt, x, y, fsize) {
 
-    var l = [], font = this.font;
-    if (!(typeof font === 'object' && font.font && font.font.supported))
-      throw Error("Not an opentype-compatible font", font)
+    var l = [], f = this.font;
+    if (!(typeof f === 'object' && f.font && f.font.supported))
+      throw Error("Not an opentype-compatible font", f)
 
-    font.font.forEachGlyph(txt, x, y, fsize, 0,
+    f.font.forEachGlyph(txt, x, y, fsize, 0,
       function(glyph, gx, gy, sz, opts) {
         var char = String.fromCharCode(glyph.unicode);
-        l.push(new Letter(font, char, gx, gy, fsize));
+        l.push(new Letter(f, char, gx, gy, fsize));
       }
     );
     return l;
@@ -335,6 +349,18 @@ function splitPaths(cmds) {
   paths.push(current);
 
   return paths;
+}
+
+function fontSizeForBounds(font, text, boundsWidth, boundsHeight) {
+
+  boundsWidth = boundsWidth;
+  boundsHeight = boundsHeight;
+  var fontSize = 12, bbox = { w: 0, h: 0 };
+  while (bbox.w < boundsWidth && bbox.h < boundsHeight) {
+    bbox = font.textBounds(text, 0, 0, fontSize += 2);
+  }
+  bbox.fontSize = fontSize;
+  return bbox; // returns {x,y,w,h,fontSize}
 }
 
 function logV(v) {
