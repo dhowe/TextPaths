@@ -2,30 +2,17 @@
 // OPT:  do bestPairings
 // BUG:  fix fill for interior paths (if contained)
 
-function Texticle(txt, options) {
+function Texticle(txt, options) { // Textoid
 
   this.init = function(txt, options) {
 
-    console.log('Texticle',options);
+    //console.log('Texticle',options);
 
     this.text = txt;
     this.x = options && options.x || 0;
     this.y = options && options.y || 0;
     this.font = options && options.font || textFont();
     this.fontSize = options && options.fontSize || textSize();
-
-    // if (options && options.w && options.h) {
-    //
-    //   this.y += height/2 + options.h/2;
-    //   this.x = options && options.padding;
-    //   log
-    // }
-
-    // if (args.length === 2 && typeof x === 'object') {
-    //   //txt = new Texticle(word, 50, height/2 + metrics.h/2);
-    //   var metrics = fontSizeForBounds(font, word, width-100, height-100);
-    //   textSize(metrics.fontSize);
-    // }
 
     this.letters = this.createLetters(this.text, this.x, this.y, this.fontSize);
   }

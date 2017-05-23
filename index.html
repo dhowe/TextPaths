@@ -35,31 +35,43 @@ function draw() {
 
 function next() {
 
+  var word = randomWord(8);
+  var metrics = maxTextSize(f, word, width-100, height-100, 50);
+
   if (!txt) {
-    var word = RiTa.randomWord(3);
-    //console.log(word);
-    var metrics = maxTextSize(f, word, width-100, height-100, 50);
     txt = new Texticle(word, metrics);
   }
   else {
-    var word = RiTa.randomWord(3);
-    var metrics = maxTextSize(f, word, width-100, height-100, 50);
     txt = new Texticle(word, metrics);
   }
 
   setTimeout(next, 2000);
 }
 
+var randomWord = function(len) {
+
+   // TODO: fix me
+   var w = RiTa.randomWord();
+   while (w.length !== len) {
+     w = RiTa.randomWord();
+   }
+   return w;
+ };
+
 function maxTextSize(font, text, boundsWidth, boundsHeight, padding) {
-  console.log(font);
+
+  var centerIncludingDescenders = true; // ????
+
   var fontSize = 12, bbox = { w: 0, h: 0 };
+
   while (bbox.w < boundsWidth && bbox.h < boundsHeight)
     bbox = font.textBounds(text, 0, 0, fontSize += 2);
 
   bbox.ascent = -bbox.y;
   bbox.descent = bbox.h - bbox.ascent;
   bbox.x = padding - (bbox.w-boundsWidth);
-  bbox.y = padding + boundsHeight/2 + bbox.ascent/2 - bbox.descent/2;
+  bbox.y = padding + boundsHeight/2 + bbox.ascent/2;
+  if (centerIncludingDescenders) bbox.y -= bbox.descent/2;
   bbox.font = font;
   bbox.fontSize = fontSize;
   //console.log(bbox);
