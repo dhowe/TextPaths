@@ -14,7 +14,7 @@
 // NEXT: implement Texticle.morph() for letter->letter
 //       move maxTextSize into Texticle
 
-var f, txt, list = Object.keys(words);
+var f, txt, list = Object.keys(words), word;
 
 function preload() {
   f = loadFont('fonts/ArialUnicode.ttf');
@@ -23,6 +23,7 @@ function preload() {
 function setup() {
   createCanvas(600, 400);
   background(245);
+  word = randomWord(6);
   next();
 }
 
@@ -33,17 +34,30 @@ function draw() {
   txt && txt.draw();
 }
 
-function next() {
-
-  var word = randomWord(6);
-  word = randomWord(floor(random(4,8)));
-  console.log(word, word.lenth);
-  var metrics = maxTextSize(f, word, width-100, height-100, 50);
-  txt = txt ? txt.morph(word, metrics, 300) : new Texticle(word, metrics);
-  setTimeout(next, 3000);
+function keyPressed() {
+  if (keyCode > 48 && keyCode < 58) {
+    word = randomWord(keyCode-48);
+    next();
+  }
 }
 
-var randomWord = function(len) {
+function next() {
+
+  // var //word = randomWord(idx--);
+  // word = randomWord(len);
+  console.log(word, word.length);
+  var metrics = maxTextSize(f, word, width-100, height-100, 50);
+  if (!txt) {
+    txt = new Texticle(word, metrics);
+  }
+  else {
+    txt.morph(word, metrics, 300);
+    //return;
+  }
+  //setTimeout(next, 3000);
+}
+
+function randomWord(len) {
 
    // TODO: fix me
    var w = RiTa.randomWord();

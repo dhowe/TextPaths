@@ -15,7 +15,16 @@ function Letter(font, glyph, x, y, fsize) {
 
   this.copy = function() {
 
-    return new Letter(this.font, this.glyph, this.x, this.y, this.fontSize);
+    var l = new Letter(this.font, this.glyph, this.x, this.y, this.fontSize);
+
+    // now update the current positions
+    for (var j = 0; j < l.vehicles.length; j++) {
+      for (var i = 0; i < l.vehicles[j].length; i++) {
+        l.vehicles[j][i].pos = this.vehicles[j][i].pos.copy();
+      }
+    }
+
+    return l;
   }
 
   this.destroy = function(x, y) {
@@ -202,7 +211,8 @@ function Letter(font, glyph, x, y, fsize) {
 
         if (type === 'Z') continue;
         var target = createVector(cmd[0], cmd[1]);
-        var position = createVector(random(0, width), random(0, height));
+        //var position = createVector(random(0, width), random(0, height));
+        var position = createVector(this.x, this.y);
         var acceleration = createVector();
         var velocity = p5.Vector.random2D();
         var veh = new Vehicle(3, target, position, acceleration, velocity);
@@ -217,11 +227,13 @@ function Letter(font, glyph, x, y, fsize) {
           var midY = cmd[1] - ((cmd[1] - lastY) / 2);
           cmd = [ midX, midY, cmd[0], cmd[1] ];
         }
+
         if (veh.type === 'Q') { // add a control point vehicle (TODO: multiple)
           veh.target = createVector(cmd[2], cmd[3]);
 
           var target = createVector(cmd[0], cmd[1]);
-          var position = createVector(random(0, width), random(0, height));
+          //var position = createVector(random(0, width), random(0, height));
+          var position = createVector(this.x, this.y);
           var acceleration = createVector();
           var velocity = p5.Vector.random2D();
           veh.control = new Vehicle(3, target, position, acceleration, velocity);
