@@ -6,8 +6,6 @@ function Texticle(txt, options) { // Textoid
 
   this.init = function(txt, options) {
 
-    //console.log('Texticle',options);
-
     this.text = txt;
     this.x = options && options.x || 0;
     this.y = options && options.y || 0;
@@ -32,8 +30,8 @@ function Texticle(txt, options) { // Textoid
       if (difference > 0) { // fewer, add some
         for (var i = 0; i < difference; i++) {
           var index = round(this.letters.length/2);
-          var newLett = this.letters[index].copy();
-          this.letters.splice(index, 0, newLett);
+          var toAdd = this.letters[index].copy();
+          this.letters.splice(index, 0, toAdd);
         }
 
       } else if (difference < 0) { // more, remove some from end
@@ -41,12 +39,12 @@ function Texticle(txt, options) { // Textoid
           var index = this.letters.length-1;
           var toRemove = this.letters[index];
           this.letters.splice(index, 1);
-          toRemove.destroy()
+          toRemove.destroy();
         }
       }
     }
 
-    equalize.bind(this)();
+    equalize.apply(this);
 
     if (txt.length != this.letters.length)
       throw Error('Invalid-state: ' + txt.length + ' != ' +this.letters.length);
@@ -56,7 +54,7 @@ function Texticle(txt, options) { // Textoid
         var char = String.fromCharCode(glyph.unicode);
         var delay = ms * idx, letter = this.letters[idx];
         setTimeout(function() {
-          letter.morph(char, gx, gy, sz)
+          letter.morph(char, gx, gy, sz);
         }, delay);
         idx++;
       }.bind(this)
@@ -66,6 +64,7 @@ function Texticle(txt, options) { // Textoid
   }
 
   this.draw = function() {
+
     for (var i = 0; i < this.letters.length; i++) {
       this.letters[i].update().draw();
     }
