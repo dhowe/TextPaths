@@ -18,27 +18,30 @@
 // OPT:  do bestPairings
 // BUG:  fix fill for interior paths (if contained)
 
-var letter, seq = 'BASDFA', sidx = -1, test = 0; // tmp
+var letter, l1, seq, xxx = 'BASDFA', sidx = -1, test = 0; // tmp
 
 function setup() {
 
   createCanvas(600, 400);
   background(245);
   loadFont('fonts/ArialUnicode.ttf', function(f) {
-    textFont(f,200);
-    letter = new Letter(f,'H', 200, 300,300);
+    letter = new Letter(f, 'H', 100, 300, 300);
   });
-  setTimeout(next, 3000);
+  setTimeout(function(){
+    letter.morph('A', 300, 300, 500);
+  }, 3000);
+  //setTimeout(next, 3000);
 }
 
 function draw() {
 
   background(0);
   letter && letter.update().draw();
+  //l1 && l1.update().draw();
 }
 
 function next() {
-  if (seq.length)
+  if (seq && seq.length)
     letter.morph(seq[++sidx%seq.length]);
   else
     letter.morph(Letter.random());

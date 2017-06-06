@@ -6,6 +6,7 @@
   <script src="lib/rita.js"></script>
   <script src="vehicle.js"></script>
   <script src="wordlist.js"></script>
+  <script src="letter.js"></script>
   <script src="texticle.js"></script>
 </head>
 <script>
@@ -20,7 +21,6 @@ function preload() {
 }
 
 function setup() {
-
   createCanvas(600, 400);
   background(245);
   next();
@@ -35,17 +35,12 @@ function draw() {
 
 function next() {
 
-  var word = randomWord(8);
+  var word = randomWord(6);
+  word = randomWord(floor(random(4,8)));
+  console.log(word, word.lenth);
   var metrics = maxTextSize(f, word, width-100, height-100, 50);
-
-  if (!txt) {
-    txt = new Texticle(word, metrics);
-  }
-  else {
-    txt = new Texticle(word, metrics);
-  }
-
-  setTimeout(next, 2000);
+  txt = txt ? txt.morph(word, metrics, 300) : new Texticle(word, metrics);
+  setTimeout(next, 3000);
 }
 
 var randomWord = function(len) {

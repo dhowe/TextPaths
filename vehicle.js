@@ -1,5 +1,5 @@
 function Vehicle(radius, target, position, acceleration, velocity, col) {
-
+  this.dead = false;
   this.maxspeed = 10;
   this.maxforce = 2;
   this.arriveDistance = 100;
@@ -16,13 +16,14 @@ Vehicle.prototype.reset = function (target, position, acceleration, velocity) {
   this.vel = velocity;
 }
 
-Vehicle.prototype.destroy = function () {
+/*Vehicle.prototype.destroy = function () {
+  this.dead = true;
   delete this.pos;
   delete this.target;
   delete this.vel;
   delete this.acc;
   delete this.col;
-}
+}*/
 
 Vehicle.prototype.copy = function () {
   return new Vehicle(this.radius, this.target.copy(),
@@ -30,6 +31,7 @@ Vehicle.prototype.copy = function () {
 }
 
 Vehicle.prototype._behaviors = function () {
+  if (this.dead) return;
   var arrive = this.arrive(this.target);
   var mouse = createVector(mouseX, mouseY);
   var flee = this.flee(mouse);
@@ -88,6 +90,7 @@ Vehicle.prototype.flee = function (target) {
 }
 
 Vehicle.prototype.update = function () {
+  if (this.dead) return;
   this._behaviors();
   this.pos.add(this.vel);
   this.vel.add(this.acc);
@@ -96,6 +99,7 @@ Vehicle.prototype.update = function () {
 }
 
 Vehicle.prototype.draw = function (ctx) {
+  if (this.dead) return;
   noFill();
   stroke('#f00');
   strokeWeight(this.radius);
