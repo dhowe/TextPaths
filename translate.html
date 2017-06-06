@@ -9,7 +9,7 @@
 <script>
 
 // NEXT: handle alignments?
-//   implement Texticle.morph()
+//   implement Textoid.morph()
 
 var txt,bb;
 function setup() {
@@ -37,14 +37,14 @@ function renderPair() {
   var metrics = fontSizeForBounds(font, word, width-100, height-100);
   textSize(metrics.fontSize);
   txt && txt.morph(word, 50, height/2 + metrics.h/2);
-  txt = new Texticle(word, 50, height/2 + metrics.h/2);
+  txt = new Textoid(word, 50, height/2 + metrics.h/2);
 
   setTimeout(function() {
 
     var metrics = fontSizeForBounds(font, words[word], width-100, height-100);
     textSize(metrics.fontSize);
     txt.morph(words[word], 50, height/2 + metrics.h/2);
-    txt = new Texticle(words[word], 50, height/2 + metrics.h/2);
+    txt = new Textoid(words[word], 50, height/2 + metrics.h/2);
 
 
     setTimeout(renderPair, 2000);
@@ -68,7 +68,7 @@ function fontSizeForBounds(font, text, boundsWidth, boundsHeight) {
 // OPT:  do bestPairings
 // BUG:  fix fill for interior paths (if contained)
 
-function Texticle(txt, x, y, fsize, font) {
+function Textoid(txt, x, y, fsize, font) {
 
   this.init = function(txt, x, y, fsize, font) {
 

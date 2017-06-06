@@ -1,5 +1,5 @@
 function Vehicle(radius, target, position, acceleration, velocity, col) {
-  this.maxspeed = 8;
+  this.maxspeed = 10;
   this.maxforce = 2;
   this.arriveDistance = 100;
   this.fleeRadius = 100;
@@ -25,7 +25,7 @@ Vehicle.prototype._behaviors = function () {
   var mouse = createVector(mouseX, mouseY);
   var flee = this.flee(mouse);
   arrive.mult(1);
-  flee.mult(5);
+  flee.mult(2); // was flee.mult(5)
   this.applyForce(arrive);
   this.applyForce(flee);
   return this;

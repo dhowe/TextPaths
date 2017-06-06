@@ -7,12 +7,12 @@
   <script src="vehicle.js"></script>
   <script src="wordlist.js"></script>
   <script src="letter.js"></script>
-  <script src="texticle.js"></script>
+  <script src="textoid.js"></script>
 </head>
 <script>
 
-// NEXT: implement Texticle.morph() for letter->letter
-//       move maxTextSize into Texticle
+// NEXT: implement Textoid.morph() for letter->letter
+//       move maxTextSize into Textoid
 
 var f, txt, list = Object.keys(words), word, test;
 
@@ -22,6 +22,7 @@ function preload() {
 
 function setup() {
   createCanvas(600, 400);
+  frameRate(50);
   background(245);
   next();
 }
@@ -47,7 +48,7 @@ function next() {
   console.log(word, word.length);
   var metrics = maxTextSize(f, word, width-100, height-100, 50);
   if (!txt) {
-    txt = new Texticle(word, metrics);
+    txt = new Textoid(word, metrics);
   }
   else {
     txt.morph(word, metrics);
