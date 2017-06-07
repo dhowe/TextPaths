@@ -1,13 +1,11 @@
 // BUG:  fix breaking path when interacting with mouse (missing closePath()?)
 // BUG:  fix fill for interior paths (if contained)
-
-// TODO: should grow from center of bounding box
 // OPT:  do bestPairings
 
 
 function Textoid(txt, options) { // Textoid
 
-  this.init = function(txt, x, y) {
+  this.init = function(txt) { // txt, metrics || txt, x, y
 
     this.text = txt;
 
@@ -21,8 +19,8 @@ function Textoid(txt, options) { // Textoid
     }
     else {
 
-      this.x = x;
-      this.y = y;
+      this.x = arguments[1];
+      this.y = arguments[2];
       this.font = textFont();
       this.fontSize = textSize();
       this._doAlignment();
@@ -135,4 +133,115 @@ Textoid.drawAll = function() {
   for (var i = 0; i < Textoid.instances.length; i++) {
     Textoid.instances[i].draw();
   }
+}
+
+Textoid.layout = function(str, x, y, maxWidth, maxHeight, font) {
+
+  var cars, n, ii, jj, line, testLine, children, testWidth, words,
+    totalHeight, baselineHacked, f = font || textFont(), p = f.parent,
+    pr = p._renderer, finalMaxHeight = Number.MAX_VALUE;
+
+  var createTextoid = function(str, x, y, maxY) {
+    children = children || [];
+    //console.log('createTextoid(',str,x,y,')');
+    if (y < maxY) children.push(new Textoid(str, x, y));
+  }
+
+  str = str.replace(/(\t)/g, '  ');
+  cars = str.split('\n');
+
+  if (typeof maxWidth !== 'undefined') {
+
+    totalHeight = 0;
+    for (ii = 0; ii < cars.length; ii++) {
+      line = '';
+      words = cars[ii].split(' ');
+      for (n = 0; n < words.length; n++) {
+        testLine = line + words[n] + ' ';
+        testWidth = pr.textWidth(testLine);
+        if (testWidth > maxWidth) {
+          line = words[n] + ' ';
+          totalHeight += p.textLeading();
+        } else {
+          line = testLine;
+        }
+      }
+    }
+
+    if (pr._rectMode === p.CENTER) {
+      x -= maxWidth / 2;
+      y -= maxHeight / 2;
+    }
+
+    switch (pr.drawingContext.textAlign) {
+      case p.CENTER:
+        x += maxWidth / 2;
+        break;
+      case p.RIGHT:
+        x += maxWidth;
+        break;
+    }
+
+    if (typeof maxHeight !== 'undefined') {
+
+      switch (pr.drawingContext.textBaseline) {
+        case p.BOTTOM:
+          y += (maxHeight - totalHeight);
+          break;
+        case p._CTX_MIDDLE: // CENTER?
+          y += (maxHeight - totalHeight) / 2;
+          break;
+        case p.BASELINE:
+          baselineHacked = true;
+          pr.drawingContext.textBaseline = p.TOP;
+          break;
+      }
+
+      // remember the max-allowed y-position for any line (fix to #928)
+      finalMaxHeight = (y + maxHeight) - p.textAscent();
+    }
+
+    for (ii = 0; ii < cars.length; ii++) {
+
+      line = '';
+      words = cars[ii].split(' ');
+      for (n = 0; n < words.length; n++) {
+        testLine = line + words[n] + ' ';
+        testWidth = pr.textWidth(testLine);
+        if (testWidth > maxWidth && line.length > 0) {
+          createTextoid(line, x, y, finalMaxHeight);
+          line = words[n] + ' ';
+          y += p.textLeading();
+        } else {
+          line = testLine;
+        }
+      }
+
+      createTextoid(line, x, y, finalMaxHeight);
+      y += p.textLeading();
+    }
+  }
+  else {
+    // Offset to account for vertically centering multiple lines of text - no
+    // need to adjust anything for vertical align top or baseline
+    var offset = 0,
+      vAlign = p.textAlign().vertical;
+    if (vAlign === p.CENTER) {
+      offset = ((cars.length - 1) * p.textLeading()) / 2;
+    } else if (vAlign === p.BOTTOM) {
+      offset = (cars.length - 1) * p.textLeading();
+    }
+
+    for (jj = 0; jj < cars.length; jj++) {
+
+      createTextoid(cars[jj], x, y-offset, finalMaxHeight);
+      y += p.textLeading();
+    }
+  }
+
+  if (baselineHacked) {
+    pr.drawingContext.textBaseline = p.BASELINE;
+  }
+
+  return p;
 }

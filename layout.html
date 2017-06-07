@@ -23,11 +23,7 @@ function preload() {
 function setup() {
   createCanvas(800, 400);
   textAlign(CENTER,CENTER);
-  texto(txt, width/4, height/4, width/2, height/2);
-}
-
-function texto(txt, x, y, w, h) {
-  new Textoid(txt, x, y, w, h);
+  Textoid.layout(txt, width/4, height/4, width/2, height/2);
 }
 
 function draw() {
