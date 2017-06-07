@@ -9,6 +9,7 @@ function Letter(font, glyph, x, y, fsize) {
     this.fontSize = fsize || textSize();
     this.vehicles = []; // 2d array: [paths][vehicles]
     this.glyph = (typeof glyph === 'object') ? glyph : font._getGlyphs(glyph)[0];
+    this.char = String.fromCharCode(this.glyph.unicode);
     this.createPaths();
     this.initVehicles();
   }
@@ -212,7 +213,8 @@ function Letter(font, glyph, x, y, fsize) {
         if (type === 'Z') continue;
         var target = createVector(cmd[0], cmd[1]);
         //var position = createVector(random(0, width), random(0, height));
-        var position = createVector(this.x, this.y);
+        var bounds = this.font.textBounds(this.char, this.x, this.y, this.fontSize);
+        var position = createVector(this.x+bounds.w/2, this.y-bounds.h/2);
         var acceleration = createVector();
         var velocity = p5.Vector.random2D();
         var veh = new Vehicle(3, target, position, acceleration, velocity);
@@ -233,7 +235,8 @@ function Letter(font, glyph, x, y, fsize) {
 
           var target = createVector(cmd[0], cmd[1]);
           //var position = createVector(random(0, width), random(0, height));
-          var position = createVector(this.x, this.y);
+          var bounds = this.font.textBounds(this.char, this.x, this.y, this.fontSize);
+          var position = createVector(this.x+bounds.w/2, this.y-bounds.h/2);
           var acceleration = createVector();
           var velocity = p5.Vector.random2D();
           veh.control = new Vehicle(3, target, position, acceleration, velocity);
@@ -288,9 +291,13 @@ function Letter(font, glyph, x, y, fsize) {
   }
 
   this.createPaths = function() {
-
-    this.paths = splitPaths(this.glyph.getPath
-      (this.x, this.y, this.fontSize).commands);
+    if (this.char !== ' ') {
+      var path = this.glyph.getPath(this.x, this.y, this.fontSize);
+      this.paths = splitPaths(path.commands);
+    }
+    else {
+      this.paths = [];
+    }
   }
 
   this.init.apply(this, arguments);

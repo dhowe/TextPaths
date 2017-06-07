@@ -1,0 +1,41 @@
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script src="lib/munkres.js"></script>
+  <script src="lib/p5.js"></script>
+  <script src="lib/rita.js"></script>
+  <script src="vehicle.js"></script>
+  <script src="wordlist.js"></script>
+  <script src="letter.js"></script>
+  <script src="textoid.js"></script>
+</head>
+<script>
+
+// NEXT: move maxTextSize into Textoid
+
+function preload() {
+
+  textFont(loadFont('fonts/ArialUnicode.ttf'), 64);
+}
+
+function setup() {
+  createCanvas(800, 400);
+  textAlign(CENTER,CENTER);
+  texto("The dog ate the lady.", width/2, height/2);
+}
+
+function texto(txt, x, y, w, h) {
+  new Textoid(txt, x, y);
+}
+
+function draw() {
+
+  noFill();
+  background(0);
+  Textoid.drawAll();
+  fill(255,64);
+  text("The dog ate the lady.", width/2, height/2);
+}
+
+</script>
+</html>
