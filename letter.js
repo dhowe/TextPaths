@@ -5,13 +5,91 @@ function Letter(font, glyph, x, y, fsize) {
 
     this.x = x;
     this.y = y;
-    this.font = font;
     this.fontSize = fsize || textSize();
+    this.font = validateFont(font || textFont());
+
     this.vehicles = []; // 2d array: [paths][vehicles]
-    this.glyph = (typeof glyph === 'object') ? glyph : font._getGlyphs(glyph)[0];
+
+    this.glyph = (typeof glyph === 'object') ? glyph : this.font._getGlyphs(glyph)[0];
     this.char = String.fromCharCode(this.glyph.unicode);
+    this._doAlignment();
     this.createPaths();
     this.initVehicles();
+  }
+
+  this.createPaths = function() {
+    if (this.char !== ' ') {
+      var path = this.glyph.getPath(this.x, this.y, this.fontSize);
+      this.bounds = this.getBoundingBox(path);
+      this.paths = splitPaths(path.commands);
+    }
+    else {
+      this.paths = [];
+    }
+  }
+
+  this._doAlignment = function() {
+
+    var p = this.font.parent, ctx = p._renderer.drawingContext;
+    if (p && ctx) {
+      var fontSize = this.fontSize, x = this.x, y = this.y,
+        textAscent = this.font._textAscent(fontSize),
+        textDescent = this.font._textDescent(fontSize),
+        textWidth = this.font._textWidth(this.char, fontSize);
+      if (ctx.textAlign === p.CENTER) {
+        this.x -= textWidth / 2;
+      } else if (ctx.textAlign === p.RIGHT) {
+        this.x -= textWidth;
+      }
+      if (ctx.textBaseline === p.TOP) {
+        this.y += textAscent;
+      } else if (ctx.textBaseline === p._CTX_MIDDLE) {
+        this.y += textAscent / 2;
+      } else if (ctx.textBaseline === p.BOTTOM) {
+        this.y -= textDescent;
+      }
+    }
+  };
+
+  this.getBoundingBox = function(path) {
+
+    var box = new BoundingBox();
+    var startX = 0,startY = 0, prevX = 0, prevY = 0;
+    for (var i = 0; i < path.commands.length; i++) {
+        var cmd = path.commands[i];
+        switch (cmd.type) {
+            case 'M':
+                box.addPoint(cmd.x, cmd.y);
+                startX = prevX = cmd.x;
+                startY = prevY = cmd.y;
+                break;
+            case 'L':
+                box.addPoint(cmd.x, cmd.y);
+                prevX = cmd.x;
+                prevY = cmd.y;
+                break;
+            case 'Q':
+                box.addQuad(prevX, prevY, cmd.x1, cmd.y1, cmd.x, cmd.y);
+                prevX = cmd.x;
+                prevY = cmd.y;
+                break;
+            case 'C':
+                box.addBezier(prevX, prevY, cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y);
+                prevX = cmd.x;
+                prevY = cmd.y;
+                break;
+            case 'Z':
+                prevX = startX;
+                prevY = startY;
+                break;
+            default:
+                throw new Error('Unexpected path commmand ' + cmd.type);
+        }
+    }
+    if (box.isEmpty()) {
+        box.addPoint(0, 0);
+    }
+    return { x:box.x1, y:box.y1, w:box.x2-box.x1, h:box.y2-box.y1 }; // x,y,w,h
   }
 
   this.copy = function() {
@@ -200,6 +278,19 @@ function Letter(font, glyph, x, y, fsize) {
     return total;
   }
 
+  this._createVehicle = function(vx, vy, type) {
+    var xOff = this.bounds ? this.bounds.w / 2 : 0;
+    var yOff = this.bounds ? this.bounds.h / -2 : 0;
+    var target = createVector(vx, vy);
+    //var position = createVector(random(0, width), random(0, height));
+    var position = createVector(this.x+xOff, this.y+yOff);
+    var acceleration = createVector();
+    var velocity = p5.Vector.random2D();
+    var veh = new Vehicle(3, target, position, acceleration, velocity);
+    veh.type = type;
+    return veh;
+  }
+
   this.initVehicles = function() {
 
     var last;
@@ -211,16 +302,10 @@ function Letter(font, glyph, x, y, fsize) {
         var cmd = this.paths[j][i], type = cmd.shift();
 
         if (type === 'Z') continue;
-        var target = createVector(cmd[0], cmd[1]);
-        //var position = createVector(random(0, width), random(0, height));
-        var bounds = this.font.textBounds(this.char, this.x, this.y, this.fontSize);
-        var position = createVector(this.x+bounds.w/2, this.y-bounds.h/2);
-        var acceleration = createVector();
-        var velocity = p5.Vector.random2D();
-        var veh = new Vehicle(3, target, position, acceleration, velocity);
-        veh.type = type;
 
+        var veh = this._createVehicle(cmd[0], cmd[1], type);
         this.vehicles[j].push(veh);
+
         if (veh.type === 'L') { // convert lines to quads
           veh.type = 'Q';
           var lastX = last[last.length-2];
@@ -232,16 +317,7 @@ function Letter(font, glyph, x, y, fsize) {
 
         if (veh.type === 'Q') { // add a control point vehicle (TODO: multiple)
           veh.target = createVector(cmd[2], cmd[3]);
-
-          var target = createVector(cmd[0], cmd[1]);
-          //var position = createVector(random(0, width), random(0, height));
-          var bounds = this.font.textBounds(this.char, this.x, this.y, this.fontSize);
-          var position = createVector(this.x+bounds.w/2, this.y-bounds.h/2);
-          var acceleration = createVector();
-          var velocity = p5.Vector.random2D();
-          veh.control = new Vehicle(3, target, position, acceleration, velocity);
-          veh.control.type = 'C';
-
+          veh.control = this._createVehicle(cmd[0], cmd[1], 'C');
           this.vehicles[j].push(veh.control);
         }
         last = cmd;
@@ -250,24 +326,29 @@ function Letter(font, glyph, x, y, fsize) {
     //logV(this.vehicles[0]);
   }
 
-  this.update = function() {
+  this.draw = function(mx, my, drawBounds) {
+
+    this.update(mx, my).render(drawBounds);
+  }
+
+  this.update = function(mx, my) {
 
     for (var j = 0; j < this.vehicles.length; j++) {
       for (var i = 0; i < this.vehicles[j].length; i++) {
-        this.vehicles[j][i].update();
+        this.vehicles[j][i].update(mx, my);
       }
     }
     return this;
   }
 
-  this.draw = function() {
+  this.render = function(drawBounds) {
 
     var pg = this.font.parent._renderer, ctx = pg.drawingContext;
 
     ctx.save();
-    ctx.lineWidth = 1;
-    ctx.fillStyle = '#c00';
-    ctx.strokeStyle = '#fff';
+    //ctx.lineWidth = 1;
+    //ctx.fillStyle = '#444';
+    //ctx.strokeStyle = '#fff';
     for (var j = 0; j < this.vehicles.length; j++) {
       ctx.beginPath();
 
@@ -284,20 +365,28 @@ function Letter(font, glyph, x, y, fsize) {
           ctx.closePath();
         }
       }
-      ctx.stroke();
-      Letter.doFill && ctx.fill();
+      if (pg._doStroke && pg._strokeSet) {
+        ctx.stroke();
+      }
+      if (pg._doFill) {
+        ctx.fillStyle = pg._fillSet ? ctx.fillStyle : constants._DEFAULT_TEXT_FILL;
+        ctx.fill();
+      }
     }
     ctx.restore();
+    if (drawBounds) {
+      noFill();
+      stroke(100);
+      rect(this.bounds.x,this.bounds.y,this.bounds.w,this.bounds.h);
+    }
   }
 
-  this.createPaths = function() {
-    if (this.char !== ' ') {
-      var path = this.glyph.getPath(this.x, this.y, this.fontSize);
-      this.paths = splitPaths(path.commands);
+  function validateFont(f) {
+    if (!(typeof f === 'object' && f.font && f.font.supported)) {
+      console.error("Font: ", f);
+      throw Error("Not an opentype-compatible font");
     }
-    else {
-      this.paths = [];
-    }
+    return f;
   }
 
   this.init.apply(this, arguments);
@@ -308,9 +397,6 @@ Letter.random = function() {
     String.fromCharCode(floor(random(65, 90))) :
     String.fromCharCode(floor(random(97, 122)));
 }
-
-Letter.doFill = false;
-
 
 function splitPaths(cmds) {
 
@@ -328,6 +414,7 @@ function splitPaths(cmds) {
 
   var paths = [], current;
   for (var i = 0; i < cmds.length; i++) {
+
     if (cmds[i].type === 'M') {
       if (current) {
         paths.push(current);
@@ -336,6 +423,7 @@ function splitPaths(cmds) {
     }
     current.push(cmdToArr(cmds[i]));
   }
+
   paths.push(current);
 
   return paths;
@@ -349,3 +437,164 @@ function logV(v) {
     console.log(s);
   }, 1500);
 }
+
+
+
+
+// The Bounding Box object
+
+function derive(v0, v1, v2, v3, t) {
+    return Math.pow(1 - t, 3) * v0 +
+        3 * Math.pow(1 - t, 2) * t * v1 +
+        3 * (1 - t) * Math.pow(t, 2) * v2 +
+        Math.pow(t, 3) * v3;
+}
+
+/**
+ * A bounding box is an enclosing box that describes the smallest measure within which all the points lie.
+ * It is used to calculate the bounding box of a glyph or text path.
+ *
+ * On initialization, x1/y1/x2/y2 will be NaN. Check if the bounding box is empty using `isEmpty()`.
+ *
+ * @exports opentype.BoundingBox
+ * @class
+ * @constructor
+ */
+function BoundingBox() {
+    this.x1 = Number.NaN;
+    this.y1 = Number.NaN;
+    this.x2 = Number.NaN;
+    this.y2 = Number.NaN;
+}
+
+/**
+ * Returns true if the bounding box is empty, that is, no points have been added to the box yet.
+ */
+BoundingBox.prototype.isEmpty = function() {
+    return isNaN(this.x1) || isNaN(this.y1) || isNaN(this.x2) || isNaN(this.y2);
+};
+
+/**
+ * Add the point to the bounding box.
+ * The x1/y1/x2/y2 coordinates of the bounding box will now encompass the given point.
+ * @param {number} x - The X coordinate of the point.
+ * @param {number} y - The Y coordinate of the point.
+ */
+BoundingBox.prototype.addPoint = function(x, y) {
+    if (typeof x === 'number') {
+        if (isNaN(this.x1) || isNaN(this.x2)) {
+            this.x1 = x;
+            this.x2 = x;
+        }
+        if (x < this.x1) {
+            this.x1 = x;
+        }
+        if (x > this.x2) {
+            this.x2 = x;
+        }
+    }
+    if (typeof y === 'number') {
+        if (isNaN(this.y1) || isNaN(this.y2)) {
+            this.y1 = y;
+            this.y2 = y;
+        }
+        if (y < this.y1) {
+            this.y1 = y;
+        }
+        if (y > this.y2) {
+            this.y2 = y;
+        }
+    }
+};
+
+/**
+ * Add a X coordinate to the bounding box.
+ * This extends the bounding box to include the X coordinate.
+ * This function is used internally inside of addBezier.
+ * @param {number} x - The X coordinate of the point.
+ */
+BoundingBox.prototype.addX = function(x) {
+    this.addPoint(x, null);
+};
+
+/**
+ * Add a Y coordinate to the bounding box.
+ * This extends the bounding box to include the Y coordinate.
+ * This function is used internally inside of addBezier.
+ * @param {number} y - The Y coordinate of the point.
+ */
+BoundingBox.prototype.addY = function(y) {
+    this.addPoint(null, y);
+};
+
+/**
+ * Add a Bézier curve to the bounding box.
+ * This extends the bounding box to include the entire Bézier.
+ * @param {number} x0 - The starting X coordinate.
+ * @param {number} y0 - The starting Y coordinate.
+ * @param {number} x1 - The X coordinate of the first control point.
+ * @param {number} y1 - The Y coordinate of the first control point.
+ * @param {number} x2 - The X coordinate of the second control point.
+ * @param {number} y2 - The Y coordinate of the second control point.
+ * @param {number} x - The ending X coordinate.
+ * @param {number} y - The ending Y coordinate.
+ */
+BoundingBox.prototype.addBezier = function(x0, y0, x1, y1, x2, y2, x, y) {
+    // This code is based on http://nishiohirokazu.blogspot.com/2009/06/how-to-calculate-bezier-curves-bounding.html
+    // and https://github.com/icons8/svg-path-bounding-box
+
+    const p0 = [x0, y0];
+    const p1 = [x1, y1];
+    const p2 = [x2, y2];
+    const p3 = [x, y];
+
+    this.addPoint(x0, y0);
+    this.addPoint(x, y);
+
+    for (let i = 0; i <= 1; i++) {
+        const b = 6 * p0[i] - 12 * p1[i] + 6 * p2[i];
+        const a = -3 * p0[i] + 9 * p1[i] - 9 * p2[i] + 3 * p3[i];
+        const c = 3 * p1[i] - 3 * p0[i];
+
+        if (a === 0) {
+            if (b === 0) continue;
+            const t = -c / b;
+            if (0 < t && t < 1) {
+                if (i === 0) this.addX(derive(p0[i], p1[i], p2[i], p3[i], t));
+                if (i === 1) this.addY(derive(p0[i], p1[i], p2[i], p3[i], t));
+            }
+            continue;
+        }
+
+        const b2ac = Math.pow(b, 2) - 4 * c * a;
+        if (b2ac < 0) continue;
+        const t1 = (-b + Math.sqrt(b2ac)) / (2 * a);
+        if (0 < t1 && t1 < 1) {
+            if (i === 0) this.addX(derive(p0[i], p1[i], p2[i], p3[i], t1));
+            if (i === 1) this.addY(derive(p0[i], p1[i], p2[i], p3[i], t1));
+        }
+        const t2 = (-b - Math.sqrt(b2ac)) / (2 * a);
+        if (0 < t2 && t2 < 1) {
+            if (i === 0) this.addX(derive(p0[i], p1[i], p2[i], p3[i], t2));
+            if (i === 1) this.addY(derive(p0[i], p1[i], p2[i], p3[i], t2));
+        }
+    }
+};
+
+/**
+ * Add a quadratic curve to the bounding box.
+ * This extends the bounding box to include the entire quadratic curve.
+ * @param {number} x0 - The starting X coordinate.
+ * @param {number} y0 - The starting Y coordinate.
+ * @param {number} x1 - The X coordinate of the control point.
+ * @param {number} y1 - The Y coordinate of the control point.
+ * @param {number} x - The ending X coordinate.
+ * @param {number} y - The ending Y coordinate.
+ */
+BoundingBox.prototype.addQuad = function(x0, y0, x1, y1, x, y) {
+    const cp1x = x0 + 2 / 3 * (x1 - x0);
+    const cp1y = y0 + 2 / 3 * (y1 - y0);
+    const cp2x = cp1x + 1 / 3 * (x - x0);
+    const cp2y = cp1y + 1 / 3 * (y - y0);
+    this.addBezier(x0, y0, cp1x, cp1y, cp2x, cp2y, x, y);
+};

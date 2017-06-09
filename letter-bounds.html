@@ -11,7 +11,7 @@
 </head>
 <script>
 
-var f, txt = "The dog ate the lady because she looked as if she might be tasty. Afterwards, the dog recalibrated that notion.";
+var t,f;
 
 function preload() {
 
@@ -19,26 +19,23 @@ function preload() {
 }
 
 function setup() {
-
-  createCanvas(800, 400);
-  textAlign(CENTER,CENTER);
-  textFont(f, 32);
-  Textoid.layout(txt, width/4, height/4, width/2, height/2);
+  createCanvas(400, 400);
+  textAlign(CENTER, CENTER);
+  textFont(f, 100);
+  t = new Letter(f, 'H', width/2, height/2);
 }
 
 function draw() {
-
   background(0);
-
-  fill(255,64);
-  noStroke();
-  text(txt, width/4, height/4, width/2, height/2);
-
   noFill();
+  stroke(255,0,0);
+  ellipse(width/2, height/2, 3, 3);
   stroke(255);
-  rect(width/4, height/4, width/2, height/2);
-
-  Textoid.drawAll();
+  line(width/2,0,width/2,height);
+  line(0,height/2,width, height/2);
+  noFill();
+  stroke(255,0,0);
+  t.draw(t.bounds, mouseY, 1);
 }
 
 </script>

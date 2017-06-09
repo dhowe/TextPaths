@@ -20,10 +20,9 @@ Vehicle.prototype.copy = function () {
     this.pos.copy(), this.acc.copy(), this.vel.copy());
 }
 
-Vehicle.prototype._behaviors = function () {
+Vehicle.prototype._behaviors = function (mx, my) {
   var arrive = this.arrive(this.target);
-  var mouse = createVector(mouseX, mouseY);
-  var flee = this.flee(mouse);
+  var flee = this.flee(createVector(mx, my));
   arrive.mult(1);
   flee.mult(2); // was flee.mult(5)
   this.applyForce(arrive);
@@ -78,8 +77,8 @@ Vehicle.prototype.flee = function (target) {
   }
 }
 
-Vehicle.prototype.update = function () {
-  this._behaviors();
+Vehicle.prototype.update = function (mx, my) {
+  this._behaviors(mx, my);
   this.pos.add(this.vel);
   this.vel.add(this.acc);
   this.acc.mult(0);

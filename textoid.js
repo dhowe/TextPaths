@@ -2,8 +2,7 @@
 // BUG:  fix fill for interior paths (if contained)
 // OPT:  do bestPairings
 
-
-function Textoid(txt, options) { // Textoid
+function Textoid(txt, options) {
 
   this.init = function(txt) { // txt, metrics || txt, x, y
 
@@ -11,11 +10,11 @@ function Textoid(txt, options) { // Textoid
 
     if (typeof arguments[1] === 'object') {
 
-      var options = x;
-      this.x = options && options.x || 0;
-      this.y = options && options.y || 0;
-      this.font = options && options.font || textFont();
-      this.fontSize = options && options.fontSize || textSize();
+      var options = arguments[1];
+      this.x = arguments[1].x || 0;
+      this.y = arguments[1].y || 0;
+      this.font = arguments[1].font || textFont();
+      this.fontSize = arguments[1].fontSize || textSize();
     }
     else {
 
@@ -31,9 +30,41 @@ function Textoid(txt, options) { // Textoid
     Textoid.instances.push(this);
   }
 
+  this.bounds = function(bbs) {
+
+    var minX=Number.MAX_VALUE, minY=Number.MAX_VALUE,
+      maxX=-Number.MAX_VALUE, maxY=-Number.MAX_VALUE,
+      xCoords = [], yCoords = [];
+
+    this.letters.forEach(function(l) {
+      bbs.push(l.bounds);
+      xCoords.push(l.bounds.x, l.bounds.x + l.bounds.w);
+      yCoords.push(l.bounds.y, l.bounds.y + l.bounds.h);
+    });
+
+    minX = Math.min.apply(null, xCoords);
+    minY = Math.min.apply(null, yCoords);
+    maxX = Math.max.apply(null, xCoords);
+    maxY = Math.max.apply(null, yCoords);
+
+    return {
+      x: minX,
+      y: minY,
+      h: maxY - minY,
+      w: maxX - minX,
+      advance: minX - this.x
+    };
+
+  }
+
+  this.boundsSimple = function() {
+
+    return this.font.textBounds(this.text, this.x, this.y, this.fontSize);
+  }
+
   this._doAlignment = function() {
 
-    var pos, f = this.font, p = f.parent,
+    var pos, f = validateFont(this.font), p = f.parent,
       ctx = p._renderer.drawingContext;
     if (f && p && ctx) {
       pos = f._handleAlignment(p, ctx, this.text, this.x, this.y);
@@ -91,22 +122,19 @@ function Textoid(txt, options) { // Textoid
     return this;
   }
 
-  this.draw = function() {
+  this.draw = function(mx, my) {
 
     for (var i = 0; i < this.letters.length; i++) {
-      this.letters[i].update().draw();
+      this.letters[i].update(mx, my).draw();
     }
   }
 
   this.createLetters = function() {
 
-    var l = [], f = this.font;
-    if (!(typeof f === 'object' && f.font && f.font.supported)) {
-      console.error("Not an opentype-compatible font", f);
-      return;
-    }
+    var l = [], f = validateFont(this.font);
 
     f.font.forEachGlyph(this.text, this.x, this.y, this.fontSize, 0,
+
       function(glyph, gx, gy, sz, opts) {
         var char = String.fromCharCode(glyph.unicode);
         l.push(new Letter(f, char, gx, gy, sz));
@@ -124,14 +152,23 @@ function Textoid(txt, options) { // Textoid
     }
     return total;
   }
+
+  function validateFont(f) {  //dup = remove
+    if (!(typeof f === 'object' && f.font && f.font.supported)) {
+      console.error("Font: ", f);
+      throw Error("Not an opentype-compatible font");
+    }
+    return f;
+  }
+
   this.init.apply(this, arguments);
 };
 
 Textoid.instances = [];
 
-Textoid.drawAll = function() {
+Textoid.drawAll = function(mx, my) {
   for (var i = 0; i < Textoid.instances.length; i++) {
-    Textoid.instances[i].draw();
+    Textoid.instances[i].draw(mx, my);
   }
 }
 
@@ -243,5 +280,5 @@ Textoid.layout = function(str, x, y, maxWidth, maxHeight, font) {
     pr.drawingContext.textBaseline = p.BASELINE;
   }
 
-  return p;
+  return children;
 }
