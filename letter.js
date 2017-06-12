@@ -7,20 +7,104 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
     this.y = y;
     this.fontSize = fsize || textSize();
     this.font = validateFont(font || textFont());
-
+    this.ctx = this.font.parent._renderer.drawingContext;
+    //var p = this.font.parent, pg = p., ctx = pg.drawingContext;
     this.vehicles = []; // 2d array: [paths][vehicles]
-
     this.glyph = (typeof glyph === 'object') ? glyph : this.font._getGlyphs(glyph)[0];
+    console.log(this.glyph);
     this.char = String.fromCharCode(this.glyph.unicode);
     ignoreAlignment || this._doAlignment();
-    this.createPaths();
-    this.initVehicles();
+    this.createPath();
+    //this.createPaths();
+    //this.initVehicles();
+  }
+
+  this.createPath = function() {
+    this.path = this.glyph.getPath(this.x, this.y, this.fontSize);
+    console.log(this.path);
+    var bbox = this.path.getBoundingBox();
+    this.bounds = { x:box.x1, y:box.y1, w:box.x2-box.x1, h:box.y2-box.y1 }; // x,y,w,h
+    var scale = 1 / this.glyph.path.unitsPerEm * this.fontSize, path = this.glyph.path;
+
+    this.points = [];
+    for (var i = 0; i < this.glyph.points.length; i++) {
+      this.points[i] =  {x: this.x + (this.glyph.points[i].x*scale), y:  this.y - (this.glyph.points[i].y*scale)};
+    }
+    //this.points = getPoints();
+    /*for (var i = 0; i < path.commands.length; i++) {
+      console.log(path.commands[i].type);
+      var cmd = this.paths[j][i], type = cmd.shift();
+
+      if (type === 'Z') continue;
+
+      var veh = this._createVehicle(cmd[0], cmd[1], type);
+      this.vehicles[j].push(veh);
+
+      if (veh.type === 'L') { // convert lines to quads
+        veh.type = 'Q';
+        var lastX = last[last.length-2];
+        var lastY = last[last.length-1];
+        var midX = cmd[0] - ((cmd[0] - lastX) / 2);
+        var midY = cmd[1] - ((cmd[1] - lastY) / 2);
+        cmd = [ midX, midY, cmd[0], cmd[1] ];
+      }
+
+      if (veh.type === 'Q') { // add a control point vehicle (TODO: multiple)
+        veh.target = createVector(cmd[2], cmd[3]);
+        veh.control = this._createVehicle(cmd[0], cmd[1], 'C');
+        this.vehicles[j].push(veh.control);
+      }
+      last = cmd;
+    }*/
   }
 
   this.createPaths = function() {
+
+    function getBoundingBox(path) {
+      var box = new BoundingBox(); // opentype BoundingBox
+      var startX = 0,startY = 0, prevX = 0, prevY = 0;
+      for (var i = 0; i < path.commands.length; i++) {
+        var cmd = path.commands[i];
+        switch (cmd.type) {
+          case 'M':
+              box.addPoint(cmd.x, cmd.y);
+              startX = prevX = cmd.x;
+              startY = prevY = cmd.y;
+              break;
+          case 'L':
+              box.addPoint(cmd.x, cmd.y);
+              prevX = cmd.x;
+              prevY = cmd.y;
+              break;
+          case 'Q':
+              box.addQuad(prevX, prevY, cmd.x1, cmd.y1, cmd.x, cmd.y);
+              prevX = cmd.x;
+              prevY = cmd.y;
+              break;
+          case 'C':
+              box.addBezier(prevX, prevY, cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y);
+              prevX = cmd.x;
+              prevY = cmd.y;
+              break;
+          case 'Z':
+              prevX = startX;
+              prevY = startY;
+              break;
+          default:
+              throw new Error('Unexpected path commmand ' + cmd.type);
+        }
+      }
+
+      if (box.isEmpty()) {
+        box.addPoint(0, 0);
+      }
+
+      return { x:box.x1, y:box.y1, w:box.x2-box.x1, h:box.y2-box.y1 }; // x,y,w,h
+    }
+
     if (this.char !== ' ') {
       var path = this.glyph.getPath(this.x, this.y, this.fontSize);
-      this.bounds = this.getBoundingBox(path);
+      this.bounds = getBoundingBox(path);
       this.paths = splitPaths(path.commands);
     }
     else {
@@ -51,47 +135,6 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
       }
     }
   };
-
-  this.getBoundingBox = function(path) {
-
-    var box = new BoundingBox();
-    var startX = 0,startY = 0, prevX = 0, prevY = 0;
-    for (var i = 0; i < path.commands.length; i++) {
-        var cmd = path.commands[i];
-        switch (cmd.type) {
-            case 'M':
-                box.addPoint(cmd.x, cmd.y);
-                startX = prevX = cmd.x;
-                startY = prevY = cmd.y;
-                break;
-            case 'L':
-                box.addPoint(cmd.x, cmd.y);
-                prevX = cmd.x;
-                prevY = cmd.y;
-                break;
-            case 'Q':
-                box.addQuad(prevX, prevY, cmd.x1, cmd.y1, cmd.x, cmd.y);
-                prevX = cmd.x;
-                prevY = cmd.y;
-                break;
-            case 'C':
-                box.addBezier(prevX, prevY, cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y);
-                prevX = cmd.x;
-                prevY = cmd.y;
-                break;
-            case 'Z':
-                prevX = startX;
-                prevY = startY;
-                break;
-            default:
-                throw new Error('Unexpected path commmand ' + cmd.type);
-        }
-    }
-    if (box.isEmpty()) {
-        box.addPoint(0, 0);
-    }
-    return { x:box.x1, y:box.y1, w:box.x2-box.x1, h:box.y2-box.y1 }; // x,y,w,h
-  }
 
   this.copy = function() {
 
@@ -280,11 +323,12 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
   }
 
   this._createVehicle = function(vx, vy, type) {
+    var startInPosition = true;
     var xOff = this.bounds ? this.bounds.w / 2 : 0;
     var yOff = this.bounds ? this.bounds.h / -2 : 0;
     var target = createVector(vx, vy);
     //var position = createVector(random(0, width), random(0, height));
-    var position = createVector(this.x+xOff, this.y+yOff);
+    var position = startInPosition ? target.copy() : createVector(this.x+xOff, this.y+yOff);
     var acceleration = createVector();
     var velocity = p5.Vector.random2D();
     var veh = new Vehicle(3, target, position, acceleration, velocity);
@@ -296,6 +340,46 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
 
     var b = this.bounds;
     return { x: b.x + b.w/2, y: b.y + b.h/2 };
+  }
+
+  function getPoints() {
+
+    var x = this.x, y = this.y, fontSize = this.fontSize;
+    var scale = 1 / this.glyph.path.unitsPerEm * fontSize, path = this.glyph.path;
+    var points = [];
+
+    function drawCircles(l, x, y, scale) {
+        var PI_SQ = Math.PI * 2;
+        //ctx.beginPath();
+        for (var j = 0; j < l.length; j += 1) {
+            var pt = { 'x': x + (l[j].x * scale), 'y': y + (l[j].y * scale) }
+            points.push(pt);
+            //ctx.moveTo(x + (l[j].x * scale), y + (l[j].y * scale));
+            //ctx.arc(x + (l[j].x * scale), y + (l[j].y * scale), 2, 0, PI_SQ, false);
+        }
+        //ctx.closePath();
+        //ctx.fill();
+    }
+
+    for (var i = 0; i < path.commands.length; i += 1) {
+        var cmd = path.commands[i];
+        if (cmd.x !== undefined) {
+            blueCircles.push({x: cmd.x, y: -cmd.y});
+        }
+
+        if (cmd.x1 !== undefined) {
+            redCircles.push({x: cmd.x1, y: -cmd.y1});
+        }
+
+        if (cmd.x2 !== undefined) {
+            redCircles.push({x: cmd.x2, y: -cmd.y2});
+        }
+    }
+
+    drawCircles(blueCircles, x, y, scale);
+    drawCircles(redCircles, x, y, scale);
+
+    return points;
   }
 
   this.initVehicles = function() {
@@ -334,8 +418,62 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
   }
 
   this.draw = function(mx, my, drawBounds) {
+    console.log('this.draw');
+    function circle(ctx, cx, cy, rad) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, rad, 0, 2 * Math.PI, false);
+      ctx.fillStyle = 'green';
+      ctx.fill();
+      //ctx.lineWidth = 1;
+      //ctx.strokeStyle = '#00ff00';
+      //ctx.stroke();
+    }
+    function rect(ctx, cx, cy, sz) {
+      ctx.rect(cx-sz/2,cy-sz/2,sz,sz);
+      ctx.strokeStyle = '#00ff00';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    //this.update(mx, my).render(drawBounds);
+    this.glyph.drawPoints(this.ctx, this.x, this.y, this.fontSize);
 
-    this.update(mx, my).render(drawBounds);
+    for (var i = 0; i < this.points.length; i++) {
+      //console.log( this.points[i].x, this.points[i].y);
+      circle(this.ctx, this.points[i].x-2, this.points[i].y, 2);
+    }
+
+    this.drawGlyph('white');
+  }
+
+  this.drawGlyph = function (stroke, fill) {
+    stroke = stroke || 'white';
+    var ctx = this.ctx;
+    ctx.beginPath();
+    for (var i = 0; i < this.path.commands.length; i += 1) {
+      var cmd = this.path.commands[i];
+      if (cmd.type === 'M') {
+          ctx.moveTo(cmd.x, cmd.y);
+      } else if (cmd.type === 'L') {
+          ctx.lineTo(cmd.x, cmd.y);
+      } else if (cmd.type === 'C') {
+          ctx.bezierCurveTo(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y);
+      } else if (cmd.type === 'Q') {
+          ctx.quadraticCurveTo(cmd.x1, cmd.y1, cmd.x, cmd.y);
+      } else if (cmd.type === 'Z') {
+          ctx.closePath();
+      }
+    }
+
+    if (fill) {
+      ctx.fillStyle = fill;
+      ctx.fill();
+    }
+
+    if (stroke) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
   }
 
   this.update = function(mx, my) {
@@ -379,6 +517,7 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
         ctx.fillStyle = pg._fillSet ? ctx.fillStyle : p._DEFAULT_TEXT_FILL;
         ctx.fill();
       }
+      ctx.closePath();
     }
 
     if (drawBounds) {

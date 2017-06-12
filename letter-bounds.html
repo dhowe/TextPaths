@@ -11,7 +11,7 @@
 </head>
 <script>
 
-var t,f;
+var t, f, txt = 'D';
 
 function preload() {
 
@@ -21,8 +21,8 @@ function preload() {
 function setup() {
   createCanvas(400, 400);
   textAlign(CENTER, CENTER);
-  textFont(f, 100);
-  t = new Letter(f, 'H', width/2, height/2);
+  textFont(f, 200);
+  t = new Letter(f, txt, width/2, height/2);
 }
 
 function draw() {
@@ -38,8 +38,15 @@ function draw() {
 
   noFill();
   stroke(255,0,0);
+  fill(255);
   //ellipse(t.center().x, t.center().y, 5, 5);
-  t.draw(t.center().x, t.center().y, 1);
+  //t.draw(t.center().x, t.center().y, 1);
+  //t.draw(mouseX, mouseY, 1);
+  t.draw();//mouseX, mouseY, 1);
+  noFill();
+  //stroke('white');
+  //text(txt, width/2, height/2);
+  noLoop();
 }
 
 </script>
