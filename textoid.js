@@ -2,9 +2,9 @@
 // BUG:  fix fill for interior paths (if contained)
 // OPT:  do bestPairings
 
-function Textoid(txt, options) {
+function Textoid(txt, x, y) {
 
-  this.init = function(txt) { // txt, metrics || txt, x, y
+  this.init = function(txt) { // (txt, metrics) || (txt, x, y)
 
     this.text = txt;
 
@@ -18,8 +18,8 @@ function Textoid(txt, options) {
     }
     else {
 
-      this.x = arguments[1];
-      this.y = arguments[2];
+      this.x = x;
+      this.y = y;
       this.font = textFont();
       this.fontSize = textSize();
       this._doAlignment();
@@ -137,7 +137,7 @@ function Textoid(txt, options) {
 
       function(glyph, gx, gy, sz, opts) {
         var char = String.fromCharCode(glyph.unicode);
-        l.push(new Letter(f, char, gx, gy, sz));
+        l.push(new Letter(f, char, gx, gy, sz, true));
       }
     );
 

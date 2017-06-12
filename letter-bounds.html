@@ -26,16 +26,20 @@ function setup() {
 }
 
 function draw() {
+
   background(0);
   noFill();
-  stroke(255,0,0);
+  stroke(0, 255, 255);
   ellipse(width/2, height/2, 3, 3);
+
   stroke(255);
   line(width/2,0,width/2,height);
-  line(0,height/2,width, height/2);
+  line(0,height/2,width,height/2);
+
   noFill();
   stroke(255,0,0);
-  t.draw(t.bounds, mouseY, 1);
+  //ellipse(t.center().x, t.center().y, 5, 5);
+  t.draw(t.center().x, t.center().y, 1);
 }
 
 </script>

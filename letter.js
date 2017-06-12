@@ -1,7 +1,7 @@
 
-function Letter(font, glyph, x, y, fsize) {
+function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
 
-  this.init = function(font, glyph, x, y, fsize) {
+  this.init = function(font, glyph, x, y, fsize, ignoreAlignment) {
 
     this.x = x;
     this.y = y;
@@ -12,7 +12,7 @@ function Letter(font, glyph, x, y, fsize) {
 
     this.glyph = (typeof glyph === 'object') ? glyph : this.font._getGlyphs(glyph)[0];
     this.char = String.fromCharCode(this.glyph.unicode);
-    this._doAlignment();
+    ignoreAlignment || this._doAlignment();
     this.createPaths();
     this.initVehicles();
   }
@@ -32,6 +32,7 @@ function Letter(font, glyph, x, y, fsize) {
 
     var p = this.font.parent, ctx = p._renderer.drawingContext;
     if (p && ctx) {
+
       var fontSize = this.fontSize, x = this.x, y = this.y,
         textAscent = this.font._textAscent(fontSize),
         textDescent = this.font._textDescent(fontSize),
@@ -291,6 +292,12 @@ function Letter(font, glyph, x, y, fsize) {
     return veh;
   }
 
+  this.center = function() {
+
+    var b = this.bounds;
+    return { x: b.x + b.w/2, y: b.y + b.h/2 };
+  }
+
   this.initVehicles = function() {
 
     var last;
@@ -343,7 +350,7 @@ function Letter(font, glyph, x, y, fsize) {
 
   this.render = function(drawBounds) {
 
-    var pg = this.font.parent._renderer, ctx = pg.drawingContext;
+    var p = this.font.parent, pg = p._renderer, ctx = pg.drawingContext;
 
     ctx.save();
     //ctx.lineWidth = 1;
@@ -369,16 +376,18 @@ function Letter(font, glyph, x, y, fsize) {
         ctx.stroke();
       }
       if (pg._doFill) {
-        ctx.fillStyle = pg._fillSet ? ctx.fillStyle : constants._DEFAULT_TEXT_FILL;
+        ctx.fillStyle = pg._fillSet ? ctx.fillStyle : p._DEFAULT_TEXT_FILL;
         ctx.fill();
       }
     }
-    ctx.restore();
+
     if (drawBounds) {
       noFill();
       stroke(100);
       rect(this.bounds.x,this.bounds.y,this.bounds.w,this.bounds.h);
     }
+
+    ctx.restore();
   }
 
   function validateFont(f) {
