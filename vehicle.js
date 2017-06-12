@@ -21,8 +21,14 @@ Vehicle.prototype.copy = function () {
 }
 
 Vehicle.prototype._behaviors = function (mx, my) {
-  var arrive = this.arrive(this.target);
-  var flee = this.flee(createVector(mx, my));
+  var flee , arrive = this.arrive(this.target);
+  if (typeof mx !== 'undefined' && typeof my !== 'undefined') {
+    flee = this.flee(createVector(mx, my));
+  }
+  else {
+    flee = createVector(0,0);
+  }
+
   arrive.mult(1);
   flee.mult(2); // was flee.mult(5)
   this.applyForce(arrive);
@@ -64,6 +70,7 @@ Vehicle.prototype.arrive = function (target) {
 }
 
 Vehicle.prototype.flee = function (target) {
+
   var desired = p5.Vector.sub(target, this.pos);
   var d = desired.mag();
   if (d < this.fleeRadius) {
@@ -72,9 +79,9 @@ Vehicle.prototype.flee = function (target) {
     var steer = p5.Vector.sub(desired, this.vel);
     steer.limit(this.maxforce);
     return steer;
-  } else {
-    return createVector(0, 0);
   }
+
+  return createVector(0, 0);
 }
 
 Vehicle.prototype.update = function (mx, my) {

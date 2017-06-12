@@ -1,0 +1,60 @@
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script src="lib/munkres.js"></script>
+  <script src="lib/p5.js"></script>
+  <script src="lib/rita.js"></script>
+  <script src="vehicle.js"></script>
+  <script src="wordlist.js"></script>
+  <script src="letter.js"></script>
+  <script src="textoid.js"></script>
+</head>
+<script>
+
+var t, f, letters = {};
+var margin = 10, gap = 46, counter = 35;
+
+function preload() {
+
+  f = loadFont('fonts/ArialUnicode.ttf');
+}
+
+function setup() {
+  createCanvas(720, 320);
+  textAlign(CENTER, CENTER);
+  textStyle(BOLD);
+  textFont(f, 24);
+  for (var y = 0; y < height-gap; y += gap) {
+    for (var x = 0; x < width-gap; x += gap) {
+      var letter = String.fromCharCode(counter++);
+      letters[letter] = new Textoid(letter, x, y);
+    }
+  }
+}
+
+function draw() {
+  background(0);
+  translate(margin*4, margin*4);
+  /*for (var y = 0; y < height-gap; y += gap) {
+    for (var x = 0; x < width-gap; x += gap) {
+      var letter = char(counter);
+      if (letter == 'P' || letter == '5') {
+        fill(255, 204, 0);
+      }
+      else if (letter == 'J' || letter == 'S') {
+        fill(204, 0, 255);
+      }
+      else {
+        fill(255);
+      }
+      texto(letter, x, y);
+      counter++;
+    }
+  }*/
+  //stroke(255);
+  fill(255);
+  Textoid.drawAll(mouseX, mouseY);
+}
+
+</script>
+</html>
