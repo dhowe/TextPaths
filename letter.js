@@ -418,15 +418,15 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
   }
 
   this.draw = function(mx, my, drawBounds) {
-    console.log('this.draw');
+
     function circle(ctx, cx, cy, rad) {
       ctx.beginPath();
       ctx.arc(cx, cy, rad, 0, 2 * Math.PI, false);
-      ctx.fillStyle = 'green';
-      ctx.fill();
-      //ctx.lineWidth = 1;
-      //ctx.strokeStyle = '#00ff00';
-      //ctx.stroke();
+      //ctx.fillStyle = 'green';
+      //ctx.fill();
+      ctx.lineWidth = .3;
+      ctx.strokeStyle = '#00ff00';
+      ctx.stroke();
     }
     function rect(ctx, cx, cy, sz) {
       ctx.rect(cx-sz/2,cy-sz/2,sz,sz);
@@ -439,7 +439,7 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
 
     for (var i = 0; i < this.points.length; i++) {
       //console.log( this.points[i].x, this.points[i].y);
-      circle(this.ctx, this.points[i].x-2, this.points[i].y, 2);
+      circle(this.ctx, this.points[i].x, this.points[i].y, 3);
     }
 
     this.drawGlyph('white');
