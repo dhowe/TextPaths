@@ -1,7 +1,3 @@
-// BUG:  fix breaking path when interacting with mouse (missing closePath()?)
-// BUG:  fix fill for interior paths (if contained)
-// OPT:  do bestPairings
-
 function Textoid(txt, x, y) {
 
   this.init = function(txt) { // (txt, metrics) || (txt, x, y)
@@ -25,19 +21,19 @@ function Textoid(txt, x, y) {
       this._doAlignment();
     }
 
-    this.letters = this.createLetters();
+    this.createLetters();
 
     Textoid.instances.push(this);
   }
 
-  this.bounds = function(bbs) {
+  this.bounds = function(bbs) { // union of letter bounds
 
     var minX=Number.MAX_VALUE, minY=Number.MAX_VALUE,
       maxX=-Number.MAX_VALUE, maxY=-Number.MAX_VALUE,
       xCoords = [], yCoords = [];
 
     this.letters.forEach(function(l) {
-      bbs.push(l.bounds);
+      if (bbs) bbs.push(l.bounds); // dbug only
       xCoords.push(l.bounds.x, l.bounds.x + l.bounds.w);
       yCoords.push(l.bounds.y, l.bounds.y + l.bounds.h);
     });
@@ -54,10 +50,21 @@ function Textoid(txt, x, y) {
       w: maxX - minX,
       advance: minX - this.x
     };
-
   }
 
-  this.boundsSimple = function() {
+  this.position = function(x, y, ignoreAlignment) {
+    this.letters.forEach(function(l) {
+      l.position(x, y, ignoreAlignment);
+    });
+  }
+
+  this.target = function(x, y, ignoreAlignment, updatePosition) {
+    this.letters.forEach(function(l) {
+      l.target(x, y, ignoreAlignment);
+    });
+  }
+
+  this.boundsSimple = function() { // make arg of bounds()
 
     return this.font.textBounds(this.text, this.x, this.y, this.fontSize);
   }
@@ -73,7 +80,7 @@ function Textoid(txt, x, y) {
     }
   }
 
-  this.morph = function(txt, metrics, ms) {
+  this.morph = function(txt, metrics, ms) { // TODO:
 
     var x = metrics.x, y = metrics.y, f = metrics.font, idx = 0,
       fs = metrics.fontSize, ms = (typeof ms !== 'undefined') ? ms : 0;
@@ -131,26 +138,17 @@ function Textoid(txt, x, y) {
 
   this.createLetters = function() {
 
-    var l = [], f = validateFont(this.font);
+    var f = validateFont(this.font);
 
+    var letters = [];
     f.font.forEachGlyph(this.text, this.x, this.y, this.fontSize, 0,
-
       function(glyph, gx, gy, sz, opts) {
         var char = String.fromCharCode(glyph.unicode);
-        l.push(new Letter(f, char, gx, gy, sz, true));
+        letters.push(new Letter(f, char, gx, gy, sz, true));
       }
     );
 
-    return l;
-  }
-
-  this.pathCount = function() {
-
-    var total = 0;
-    for (var i = 0; i < this.letters.length; i++) {
-      total += this.letters[i].pathCount();
-    }
-    return total;
+    this.letters = letters;
   }
 
   function validateFont(f) {  //dup = remove

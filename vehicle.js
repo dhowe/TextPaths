@@ -8,6 +8,8 @@ function Vehicle(radius, target, position, acceleration, velocity, col) {
   this.reset(target, position, acceleration, velocity);
 }
 
+Vehicle.speed = 2;
+
 Vehicle.prototype.reset = function (target, position, acceleration, velocity) {
   this.target = target;
   this.pos = position;
@@ -30,7 +32,7 @@ Vehicle.prototype._behaviors = function (mx, my) {
   }
 
   arrive.mult(1);
-  flee.mult(2); // was flee.mult(5)
+  flee.mult(Vehicle.speed); // was flee.mult(5)
   this.applyForce(arrive);
   this.applyForce(flee);
   return this;

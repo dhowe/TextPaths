@@ -1,4 +1,4 @@
-// NEXt: create vehicles, then draw only with vehicles
+// Next: do smart morph (include bestPairings), scaling of flee
 
 function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
 
@@ -16,46 +16,13 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
     Letter.instances.push(this);
   }
 
-  this._xAlign = function(x) {
-
-    var p = this.font.parent, ctx = this.ctx;
-    if (p && ctx) {
-      var fontSize = this.fontSize,
-        textWidth = this.font._textWidth(this.char, fontSize);
-      if (ctx.textAlign === p.CENTER) {
-        x -= textWidth / 2;
-      } else if (ctx.textAlign === p.RIGHT) {
-        x -= textWidth;
-      }
-    }
-    return x;
-  }
-
-  this._yAlign = function(y) {
-
-    var p = this.font.parent, ctx = this.ctx;
-    if (p && ctx) {
-      var fontSize = this.fontSize,
-        textAscent = this.font._textAscent(fontSize),
-        textDescent = this.font._textDescent(fontSize);
-      if (ctx.textBaseline === p.TOP) {
-        y += textAscent;
-      } else if (ctx.textBaseline === p._CTX_MIDDLE) {
-        y += textAscent / 2;
-      } else if (ctx.textBaseline === p.BOTTOM) {
-        y -= textDescent;
-      }
-    }
-    return y;
-  }
-
   this.createPath = function() {
 
     this.path = this.glyph.getPath(this.x, this.y, this.fontSize);
     var box = this.path.getBoundingBox();
     this.bounds = { x:box.x1, y:box.y1, w:box.x2-box.x1, h:box.y2-box.y1 }; // x,y,w,h
     this.scale = 1 / this.glyph.path.unitsPerEm * this.fontSize;
-    console.log(this.glyph); console.log(this.path);
+    //console.log(this.glyph); console.log(this.path);
   }
 
   this.position = function(x, y, ignoreAlignment) {
@@ -75,80 +42,14 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
     this.createPath();
 
     for (var i = 0; i < this.vehicles.length; i++) {
-      this.vehicles[i].target.x += xOff;
-      this.vehicles[i].target.y += yOff;
+      // this.vehicles[i].target.x += xOff;
+      // this.vehicles[i].target.y += yOff;
+      this.vehicles[i].target.add(createVector(xOff, yOff))
       if (updatePosition) {
-        this.vehicles[i].pos.x += xOff;
-        this.vehicles[i].pos.y += yOff;
+        this.vehicles[i].pos.add(createVector(xOff, yOff))
+      //   this.vehicles[i].pos.x += xOff;
+      //   this.vehicles[i].pos.y += yOff;
       }
-    }
-  }
-
-  this.resetVehicles = function(idx) {
-
-    var points = this.paths[idx]; // points for this path
-    var vehicles = this.vehicles[idx]; // vehicles for the last path
-
-    // total count of points for this path, including control points
-    var totalPts = this.countPoints(points);
-
-    // detach the control points
-    for (var i = 0; i < vehicles.length; i++) {
-      vehicles[i].control = undefined;
-    }
-
-    var difference = totalPts - vehicles.length;
-
-    // add or remove vehicles to match the total point counts
-    // then loop through, assigning data and control points
-    if (difference > 0) { // add
-
-      for (var i = 0; i < difference; i++) {
-        var randomIndex = floor(random(vehicles.length));
-        var v = vehicles[randomIndex].copy();
-        vehicles.splice(randomIndex, 0, v);
-      }
-
-    } else if (difference < 0) {
-
-      for (var i = 0; i < difference * -1; i++) {
-        var randomIndex = floor(random(vehicles.length));
-        vehicles.splice(randomIndex, 1);
-      }
-    }
-
-    if (totalPts != vehicles.length)
-      throw Error('2. invalid state: letter='+letter+' ('+totalPts+') '+vehicles.length);
-
-    var last, vIdx = 0;
-    for (var i = 0; i < points.length; i++) {
-
-      var cmd = points[i], type = cmd.shift();
-
-      if (type === 'Z') continue;
-
-      var veh = vehicles[vIdx++]; // set the data point vehicle's target
-      veh.target = createVector(cmd[0], cmd[1]);
-      veh.type = type;
-
-      if (veh.type === 'L') { // convert lines to quads
-        veh.type = 'Q';
-        var lastX = last[last.length-2];
-        var lastY = last[last.length-1];
-        var midX = cmd[0] - ((cmd[0] - lastX) / 2);
-        var midY = cmd[1] - ((cmd[1] - lastY) / 2);
-        cmd = [ midX, midY, cmd[0], cmd[1] ];
-      }
-
-      if (veh.type === 'Q') { // add the control point vehicle's target
-
-        veh.target = createVector(cmd[2], cmd[3]);
-        veh.control = vehicles[vIdx++];
-        veh.control.target =  createVector(cmd[0], cmd[1]);
-        veh.control.type = 'C';
-      }
-
-      last = cmd;
     }
   }
 
@@ -187,7 +88,8 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
 
       last = cmd;
     }
-    console.log('Created '+this.vehicles.length+' vehicles');
+
+    //console.log('Created '+this.vehicles.length+' vehicles');
   }
 
   this.copy = function() {
@@ -330,6 +232,38 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
       rect(this.bounds.x,this.bounds.y,this.bounds.w,this.bounds.h);
     }
   }
+  this._xAlign = function(x) {
+
+    var p = this.font.parent, ctx = this.ctx;
+    if (p && ctx) {
+      var fontSize = this.fontSize,
+        textWidth = this.font._textWidth(this.char, fontSize);
+      if (ctx.textAlign === p.CENTER) {
+        x -= textWidth / 2;
+      } else if (ctx.textAlign === p.RIGHT) {
+        x -= textWidth;
+      }
+    }
+    return x;
+  }
+
+  this._yAlign = function(y) {
+
+    var p = this.font.parent, ctx = this.ctx;
+    if (p && ctx) {
+      var fontSize = this.fontSize,
+        textAscent = this.font._textAscent(fontSize),
+        textDescent = this.font._textDescent(fontSize);
+      if (ctx.textBaseline === p.TOP) {
+        y += textAscent;
+      } else if (ctx.textBaseline === p._CTX_MIDDLE) {
+        y += textAscent / 2;
+      } else if (ctx.textBaseline === p.BOTTOM) {
+        y -= textDescent;
+      }
+    }
+    return y;
+  }
 
   function validateFont(f) {
     if (!(typeof f === 'object' && f.font && f.font.supported)) {
@@ -345,8 +279,9 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
 Letter.instances = [];
 
 Letter.drawAll = function(mx, my) {
-  for (var i = 0; i < Textoid.instances.length; i++) {
-    Textoid.instances[i].draw(mx, my);
+  //Letter.speed = .1;
+  for (var i = 0; i < Letter.instances.length; i++) {
+    Letter.instances[i].draw(mx, my);
   }
 }
 
