@@ -1,4 +1,6 @@
-// Next: do smart morph (include bestPairings), scaling of flee
+// Next:
+//    scaling of flee (alphabet.html)
+//    do smart morph (include bestPairings)
 
 function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
 
