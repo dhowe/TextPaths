@@ -172,6 +172,11 @@ Textoid.drawAll = function(mx, my) {
   }
 }
 
+Textoid.destroy = function(t) {
+  var idx = Textoid.instances.indexOf(t);
+  if (idx > -1) Textoid.instances.splice(idx,1);
+}
+
 Textoid.layout = function(str, x, y, maxWidth, maxHeight, font) {
 
   var cars, n, ii, jj, line, testLine, children, testWidth, words,

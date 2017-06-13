@@ -21,10 +21,13 @@ function preload() {
 function setup() {
   createCanvas(400, 400);
   textAlign(CENTER, CENTER);
-  textFont(f, 400);
+  textFont(f, 200);
   x = width/2;
   y = height/3;
   t = new Letter(f, txt, x, y);
+  setTimeout(function(){
+    t.target(x,200);
+  },2000);
 }
 
 function draw() {
@@ -41,14 +44,16 @@ function draw() {
   noFill();
   stroke(255,0,0);
   fill(255);
-  //ellipse(t.center().x, t.center().y, 5, 5);
+
   //t.draw(t.center().x, t.center().y, 1);
-  t.draw(mouseX, mouseY, 1);
-  //t.draw(true);//mouseX, mouseY, 1);
-  // noFill();
-  //stroke('white');
-  //text(txt, width/2, height/2);
-  noLoop();
+  //t.draw(mouseX, mouseY, 1);
+  t.draw();
+
+  noFill();
+  stroke('green');
+  text(txt, x, y);
+
+  //noLoop();
 }
 
 </script>

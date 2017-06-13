@@ -4,17 +4,49 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
 
   this.init = function(font, glyph, x, y, fsize, ignoreAlignment) {
 
-    this.x = x;
-    this.y = y;
     this.fontSize = fsize || textSize();
     this.font = validateFont(font || textFont());
     this.ctx = this.font.parent._renderer.drawingContext;
-    //var p = this.font.parent, pg = p., ctx = pg.drawingContext;
     this.glyph = (typeof glyph === 'object') ? glyph : this.font._getGlyphs(glyph)[0];
     this.char = String.fromCharCode(this.glyph.unicode);
-    ignoreAlignment || this._doAlignment();
+    this.x = ignoreAlignment ? x : this._xAlign(x);
+    this.y = ignoreAlignment ? y : this._yAlign(y);
     this.createPath();
     this.createVehicles();
+    Letter.instances.push(this);
+  }
+
+  this._xAlign = function(x) {
+
+    var p = this.font.parent, ctx = this.ctx;
+    if (p && ctx) {
+      var fontSize = this.fontSize,
+        textWidth = this.font._textWidth(this.char, fontSize);
+      if (ctx.textAlign === p.CENTER) {
+        x -= textWidth / 2;
+      } else if (ctx.textAlign === p.RIGHT) {
+        x -= textWidth;
+      }
+    }
+    return x;
+  }
+
+  this._yAlign = function(y) {
+
+    var p = this.font.parent, ctx = this.ctx;
+    if (p && ctx) {
+      var fontSize = this.fontSize,
+        textAscent = this.font._textAscent(fontSize),
+        textDescent = this.font._textDescent(fontSize);
+      if (ctx.textBaseline === p.TOP) {
+        y += textAscent;
+      } else if (ctx.textBaseline === p._CTX_MIDDLE) {
+        y += textAscent / 2;
+      } else if (ctx.textBaseline === p.BOTTOM) {
+        y -= textDescent;
+      }
+    }
+    return y;
   }
 
   this.createPath = function() {
@@ -26,158 +58,29 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
     console.log(this.glyph); console.log(this.path);
   }
 
-  this.createVehicles = function() {
-
-    this.vehicles = [];
-    for (var i = 0; i < this.path.commands.length; i++) {
-
-      var cmd = this.path.commands[i];
-
-      if (cmd.type === 'Z') {
-        last.endsContour = true;
-        continue;
-      }
-
-      var veh = this._createVehicle(cmd.x, cmd.y, cmd.type);
-      this.vehicles.push(veh);
-
-      if (veh.type === 'L') {
-
-        // convert lines to quads
-        veh.type = 'Q';
-
-        // compute midpoint between last and current
-        cmd.x1 = cmd.x - ((cmd.x - last.x) / 2)
-        cmd.y1 = cmd.y - ((cmd.y - last.y) / 2)
-      }
-
-      if (veh.type === 'Q') {
-
-        veh.control = this._createVehicle(cmd.x1, cmd.y1, 'C');
-        //console.log(veh.pos.x,veh.pos.y,'->',veh.control.pos.x,veh.control. pos.y);
-        this.vehicles.push(veh.control);
-      }
-      else if (veh.type !== 'M') {
-
-        throw Error('Unexpected type: '+veh.type);
-      }
-
-      last = cmd;
-    }
-    console.log('Created '+this.vehicles.length+' vehicles');
+  this.position = function(x, y, ignoreAlignment) {
+    this.target(x, y, ignoreAlignment, true);
   }
 
-  this._doAlignment = function() {
+  this.target = function(x, y, ignoreAlignment, updatePosition) {
 
-    var p = this.font.parent, ctx = p._renderer.drawingContext;
-    if (p && ctx) {
-      var fontSize = this.fontSize, x = this.x, y = this.y,
-        textAscent = this.font._textAscent(fontSize),
-        textDescent = this.font._textDescent(fontSize),
-        textWidth = this.font._textWidth(this.char, fontSize);
-      if (ctx.textAlign === p.CENTER) {
-        this.x -= textWidth / 2;
-      } else if (ctx.textAlign === p.RIGHT) {
-        this.x -= textWidth;
-      }
-      if (ctx.textBaseline === p.TOP) {
-        this.y += textAscent;
-      } else if (ctx.textBaseline === p._CTX_MIDDLE) {
-        this.y += textAscent / 2;
-      } else if (ctx.textBaseline === p.BOTTOM) {
-        this.y -= textDescent;
-      }
-    }
-  };
+    x = ignoreAlignment ? x : this._xAlign(x);
+    y = ignoreAlignment ? y : this._yAlign(y);
 
-  this.copy = function() {
-
-    var l = new Letter(this.font, this.glyph, this.x, this.y, this.fontSize);
-
-    // now update the current positions
-    for (var i = 0; i < l.vehicles.length; i++) {
-      l.vehicles[i].pos = this.vehicles[i].pos.copy();
-    }
-
-    return l;
-  }
-
-  this.destroy = function(x, y) {
-
-    this.vehicles = [];
-    delete this.path;
-    delete this.glyph;
-  }
-
-  this.position = function(x, y) {
-
-    if (!arguments.length) {
-      return {x: this.x, y: this.y };
-    }
+    var xOff = x - this.x;
+    var yOff = y - this.y;
 
     this.x = x;
     this.y = y;
-
     this.createPath();
-    for (var i = 0; i < this.paths.length; i++) {
-      this.resetVehicles(i);
-    }
-  }
 
-  this.morph = function(letter, x, y, fs) {
-
-    //console.log('morph', letter, x, y, fs);
-
-    function copyVehicleArray(v) {
-      var result = [];
-      for (var i = 0; i < v.length; i++) {
-        result.push(v[i].copy());
+    for (var i = 0; i < this.vehicles.length; i++) {
+      this.vehicles[i].target.x += xOff;
+      this.vehicles[i].target.y += yOff;
+      if (updatePosition) {
+        this.vehicles[i].pos.x += xOff;
+        this.vehicles[i].pos.y += yOff;
       }
-      return result;
-    }
-
-    if (arguments.length > 1) { // set position as well
-      this.x = x;
-      this.y = y;
-      this.fontSize = fs || this.fontSize;
-    }
-
-    var current = this.vehicles.length;
-    this.glyph = font._getGlyphs(letter)[0];
-    this.createPaths();
-    var difference = this.paths.length - current;
-
-    // TODO: smarter/smoother adding/deleting of vehicle arrays
-
-    if (difference > 0) { // fewer, add some
-
-      //console.log('adding');
-      for (var i = 0; i < difference; i++) {
-        var randomIndex = floor(random(this.vehicles.length));
-        var v = copyVehicleArray(this.vehicles[randomIndex]);
-        this.vehicles.splice(randomIndex, 0, v);
-      }
-
-    } else if (difference < 0) { // more, remove some
-
-      //console.log('removing ',-difference);
-      for (var i = 0; i < -difference; i++) {
-        var randomIndex = floor(random(this.vehicles.length));
-        var toRemove = this.vehicles[randomIndex];
-        this.vehicles.splice(randomIndex, 1);
-        //for (var j = 0; j < toRemove.length; j++)
-          //toRemove[j].destroy();
-        toRemove = [];
-      }
-    }
-
-    if (this.paths.length != this.vehicles.length)
-      throw Error('1. invalid state: letter='+letter+
-      ' ('+this.paths.length+') '+this.vehicles.length);
-
-    // We now have an equal # of paths, now handle vehicles
-    for (var i = 0; i < this.paths.length; i++) {
-      this.resetVehicles(i);
     }
   }
 
@@ -249,16 +152,118 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
     }
   }
 
-  this.countPoints = function(path) {
-    var total = 0;
-    for (var i = 0; i < path.length; i++) {
-      var type = path[i][0];
-      if (path[i][0] !== 'Z') { // M = 1, L/Q = 2, Z = 0
-        total += (type === 'M') ? 1 : 2;
+  this.createVehicles = function() {
+
+    this.vehicles = [];
+    for (var i = 0; i < this.path.commands.length; i++) {
+
+      var cmd = this.path.commands[i];
+
+      if (cmd.type === 'Z') continue;
+
+      var veh = this._createVehicle(cmd.x, cmd.y, cmd.type);
+      this.vehicles.push(veh);
+
+      if (veh.type === 'L') {
+
+        // convert lines to quads
+        veh.type = 'Q';
+
+        // compute midpoint between last and current
+        cmd.x1 = cmd.x - ((cmd.x - last.x) / 2)
+        cmd.y1 = cmd.y - ((cmd.y - last.y) / 2)
+      }
+
+      if (veh.type === 'Q') {
+
+        veh.control = this._createVehicle(cmd.x1, cmd.y1, 'C');
+        //console.log(veh.pos.x,veh.pos.y,'->',veh.control.pos.x,veh.control. pos.y);
+        this.vehicles.push(veh.control);
+      }
+      else if (veh.type !== 'M') {
+
+        throw Error('Unexpected type: '+veh.type);
+      }
+
+      last = cmd;
+    }
+    console.log('Created '+this.vehicles.length+' vehicles');
+  }
+
+  this.copy = function() {
+
+    var l = new Letter(this.font, this.glyph, this.x, this.y, this.fontSize);
+
+    // now update the current positions
+    for (var i = 0; i < l.vehicles.length; i++) {
+      l.vehicles[i].pos = this.vehicles[i].pos.copy();
+    }
+
+    return l;
+  }
+
+  this.destroy = function(x, y) {
+
+    this.vehicles = [];
+    delete this.path;
+    delete this.glyph;
+  }
+
+  this.morph = function(letter, x, y, fs) { // not updated
+
+    //console.log('morph', letter, x, y, fs);
+
+    function copyVehicleArray(v) {
+      var result = [];
+      for (var i = 0; i < v.length; i++) {
+        result.push(v[i].copy());
+      }
+      return result;
+    }
+
+    if (arguments.length > 1) { // set position as well
+      this.x = x;
+      this.y = y;
+      this.fontSize = fs || this.fontSize;
+    }
+
+    var current = this.vehicles.length;
+    this.glyph = font._getGlyphs(letter)[0];
+    this.createPaths();
+    var difference = this.paths.length - current;
+
+    // TODO: smarter/smoother adding/deleting of vehicle arrays
+
+    if (difference > 0) { // fewer, add some
+
+      //console.log('adding');
+      for (var i = 0; i < difference; i++) {
+        var randomIndex = floor(random(this.vehicles.length));
+        var v = copyVehicleArray(this.vehicles[randomIndex]);
+        this.vehicles.splice(randomIndex, 0, v);
+      }
+
+    } else if (difference < 0) { // more, remove some
+
+      //console.log('removing ',-difference);
+      for (var i = 0; i < -difference; i++) {
+        var randomIndex = floor(random(this.vehicles.length));
+        var toRemove = this.vehicles[randomIndex];
+        this.vehicles.splice(randomIndex, 1);
+        //for (var j = 0; j < toRemove.length; j++)
+          //toRemove[j].destroy();
+        toRemove = [];
       }
     }
-    //console.log('path has '+total + ' total pts);
-    return total;
+
+    if (this.paths.length != this.vehicles.length)
+      throw Error('1. invalid state: letter='+letter+
+      ' ('+this.paths.length+') '+this.vehicles.length);
+
+    // We now have an equal # of paths, now handle vehicles
+    for (var i = 0; i < this.paths.length; i++) {
+      this.resetVehicles(i);
+    }
   }
 
   this._createVehicle = function(vx, vy, type) {
@@ -283,109 +288,8 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
 
   this.draw = function(mx, my, drawBounds) {
 
-    //this.update(mx, my);
+    this.update(mx, my);
     this.render(drawBounds);
-
-    //this.update(mx, my).render(drawBounds);
-    /*this.glyph.drawPoints(this.ctx, this.x, this.y, this.fontSize);
-
-    for (var i = 0; i < this.points.length; i++) {
-      //console.log( this.points[i].x, this.points[i].y);
-      circle(this.ctx, this.points[i].x, this.points[i].y, 3);
-    }*/
-
-    //this.drawGlyph('white');
-    //this.drawVehicles('yellow','orange');
-  }
-
-  function circle(ctx, cx, cy, rad, stroke, fill) {
-    ctx.beginPath();
-    ctx.arc(cx, cy, rad, 0, 2 * Math.PI, false);
-    if (fill) {
-      ctx.fillStyle = fill;
-      ctx.fill();
-    }
-    if (stroke) {
-        ctx.strokeStyle = stroke;
-        ctx.lineWidth = .3;
-        ctx.stroke();
-    }
-  }
-
-  function _rect(ctx, cx, cy, sz) {
-    ctx.rect(cx-sz/2,cy-sz/2,sz,sz);
-    if (ctx.fillStyle) ctx.fill();
-    if (ctx.strokeStyle) {
-        ctx.lineWidth = 1;
-        ctx.stroke();
-    }
-  }
-
-  this.drawVehicles = function (stroke, fill) {
-
-    var ctx = this.ctx;
-
-    for (var i = 0; i < this.vehicles.length; i++) {
-      var vehicle = this.vehicles[i];
-      var x = vehicle.pos.x, y = vehicle.pos.y;
-      //console.log(x,y);
-      circle(ctx, x,  y,  3, '#fff');
-    }
-
-    ctx.beginPath();
-    for (var i = 0; i < this.vehicles.length; i++) {
-      var vehicle = this.vehicles[i];
-      var x = vehicle.pos.x, y = vehicle.pos.y;
-      if (vehicle.type === 'M') {
-        ctx.moveTo(x,y);
-      } else if (vehicle.type === 'Q') {
-        ctx.quadraticCurveTo(vehicle.control.pos.x, vehicle.control.pos.y, x, y);
-      }
-    }
-
-    if (fill) {
-      ctx.fillStyle = fill;
-      ctx.fill();
-    }
-
-    if (stroke) {
-      ctx.strokeStyle = stroke;
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-
-    ctx.closePath();
-  }
-
-  this.drawGlyph = function (stroke, fill) {
-    stroke = stroke || 'white';
-    var ctx = this.ctx;
-    ctx.beginPath();
-    for (var i = 0; i < this.path.commands.length; i += 1) {
-      var cmd = this.path.commands[i];
-      if (cmd.type === 'M') {
-          ctx.moveTo(cmd.x, cmd.y);
-      } else if (cmd.type === 'L') {
-          ctx.lineTo(cmd.x, cmd.y);
-      } else if (cmd.type === 'C') {
-          ctx.bezierCurveTo(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y);
-      } else if (cmd.type === 'Q') {
-          ctx.quadraticCurveTo(cmd.x1, cmd.y1, cmd.x, cmd.y);
-      } else if (cmd.type === 'Z') {
-          ctx.closePath();
-      }
-    }
-
-    if (fill) {
-      ctx.fillStyle = fill;
-      ctx.fill();
-    }
-
-    if (stroke) {
-      ctx.strokeStyle = stroke;
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
   }
 
   this.update = function(mx, my) {
@@ -410,6 +314,7 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
         ctx.quadraticCurveTo(vehicle.control.pos.x, vehicle.control.pos.y, x, y);
       }
     }
+
     if (pg._doStroke && pg._strokeSet) {
       ctx.stroke();
     }
@@ -437,41 +342,23 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
   this.init.apply(this, arguments);
 }
 
+Letter.instances = [];
+
+Letter.drawAll = function(mx, my) {
+  for (var i = 0; i < Textoid.instances.length; i++) {
+    Textoid.instances[i].draw(mx, my);
+  }
+}
+
+Letter.destroy = function(t) {
+  var idx = Letter.instances.indexOf(t);
+  if (idx > -1) Letter.instances.splice(idx,1);
+}
+
 Letter.random = function() {
   return Math.random() < .5 ?
     String.fromCharCode(floor(random(65, 90))) :
     String.fromCharCode(floor(random(97, 122)));
-}
-
-function splitPaths(cmds) {
-
-  function cmdToArr(cmd) {
-    var arr = [ cmd.type ];
-    if (cmd.type === 'M' || cmd.type === 'L') { // moveto or lineto
-      arr.push(cmd.x, cmd.y);
-    } else if (cmd.type === 'C') {
-      arr.push(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y);
-    } else if (cmd.type === 'Q') {
-      arr.push(cmd.x1, cmd.y1, cmd.x, cmd.y);
-    }
-    return arr;
-  }
-
-  var paths = [], current;
-  for (var i = 0; i < cmds.length; i++) {
-
-    if (cmds[i].type === 'M') {
-      if (current) {
-        paths.push(current);
-      }
-      current = [];
-    }
-    current.push(cmdToArr(cmds[i]));
-  }
-
-  paths.push(current);
-
-  return paths;
 }
 
 function logV(v) {
@@ -486,7 +373,7 @@ function logV(v) {
 
 
 
-// The Bounding Box object
+// The Opentype Bounding Box object ////////////////////////////////////
 
 function derive(v0, v1, v2, v3, t) {
     return Math.pow(1 - t, 3) * v0 +
@@ -495,16 +382,6 @@ function derive(v0, v1, v2, v3, t) {
         Math.pow(t, 3) * v3;
 }
 
-/**
- * A bounding box is an enclosing box that describes the smallest measure within which all the points lie.
- * It is used to calculate the bounding box of a glyph or text path.
- *
- * On initialization, x1/y1/x2/y2 will be NaN. Check if the bounding box is empty using `isEmpty()`.
- *
- * @exports opentype.BoundingBox
- * @class
- * @constructor
- */
 function BoundingBox() {
     this.x1 = Number.NaN;
     this.y1 = Number.NaN;
@@ -512,19 +389,10 @@ function BoundingBox() {
     this.y2 = Number.NaN;
 }
 
-/**
- * Returns true if the bounding box is empty, that is, no points have been added to the box yet.
- */
 BoundingBox.prototype.isEmpty = function() {
     return isNaN(this.x1) || isNaN(this.y1) || isNaN(this.x2) || isNaN(this.y2);
 };
 
-/**
- * Add the point to the bounding box.
- * The x1/y1/x2/y2 coordinates of the bounding box will now encompass the given point.
- * @param {number} x - The X coordinate of the point.
- * @param {number} y - The Y coordinate of the point.
- */
 BoundingBox.prototype.addPoint = function(x, y) {
     if (typeof x === 'number') {
         if (isNaN(this.x1) || isNaN(this.x2)) {
@@ -552,38 +420,14 @@ BoundingBox.prototype.addPoint = function(x, y) {
     }
 };
 
-/**
- * Add a X coordinate to the bounding box.
- * This extends the bounding box to include the X coordinate.
- * This function is used internally inside of addBezier.
- * @param {number} x - The X coordinate of the point.
- */
 BoundingBox.prototype.addX = function(x) {
     this.addPoint(x, null);
 };
 
-/**
- * Add a Y coordinate to the bounding box.
- * This extends the bounding box to include the Y coordinate.
- * This function is used internally inside of addBezier.
- * @param {number} y - The Y coordinate of the point.
- */
 BoundingBox.prototype.addY = function(y) {
     this.addPoint(null, y);
 };
 
-/**
- * Add a Bézier curve to the bounding box.
- * This extends the bounding box to include the entire Bézier.
- * @param {number} x0 - The starting X coordinate.
- * @param {number} y0 - The starting Y coordinate.
- * @param {number} x1 - The X coordinate of the first control point.
- * @param {number} y1 - The Y coordinate of the first control point.
- * @param {number} x2 - The X coordinate of the second control point.
- * @param {number} y2 - The Y coordinate of the second control point.
- * @param {number} x - The ending X coordinate.
- * @param {number} y - The ending Y coordinate.
- */
 BoundingBox.prototype.addBezier = function(x0, y0, x1, y1, x2, y2, x, y) {
     // This code is based on http://nishiohirokazu.blogspot.com/2009/06/how-to-calculate-bezier-curves-bounding.html
     // and https://github.com/icons8/svg-path-bounding-box
@@ -626,16 +470,6 @@ BoundingBox.prototype.addBezier = function(x0, y0, x1, y1, x2, y2, x, y) {
     }
 };
 
-/**
- * Add a quadratic curve to the bounding box.
- * This extends the bounding box to include the entire quadratic curve.
- * @param {number} x0 - The starting X coordinate.
- * @param {number} y0 - The starting Y coordinate.
- * @param {number} x1 - The X coordinate of the control point.
- * @param {number} y1 - The Y coordinate of the control point.
- * @param {number} x - The ending X coordinate.
- * @param {number} y - The ending Y coordinate.
- */
 BoundingBox.prototype.addQuad = function(x0, y0, x1, y1, x, y) {
     const cp1x = x0 + 2 / 3 * (x1 - x0);
     const cp1y = y0 + 2 / 3 * (y1 - y0);
