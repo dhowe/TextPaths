@@ -11,7 +11,7 @@
 </head>
 <script>
 
-var t, f, x, y, txt = 'D';
+var t, f, x, y, txt = '%';
 
 function preload() {
 
@@ -43,9 +43,9 @@ function draw() {
   fill(255);
   //ellipse(t.center().x, t.center().y, 5, 5);
   //t.draw(t.center().x, t.center().y, 1);
-  //t.draw(mouseX, mouseY, 1);
-  t.draw();//mouseX, mouseY, 1);
-  noFill();
+  t.draw(mouseX, mouseY, 1);
+  //t.draw(true);//mouseX, mouseY, 1);
+  // noFill();
   //stroke('white');
   //text(txt, width/2, height/2);
   noLoop();

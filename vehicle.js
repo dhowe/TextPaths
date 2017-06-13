@@ -21,12 +21,12 @@ Vehicle.prototype.copy = function () {
 }
 
 Vehicle.prototype._behaviors = function (mx, my) {
-  var flee , arrive = this.arrive(this.target);
+  var flee, arrive = this.arrive(this.target);
   if (typeof mx !== 'undefined' && typeof my !== 'undefined') {
     flee = this.flee(createVector(mx, my));
   }
   else {
-    flee = createVector(0,0);
+    flee = createVector(0, 0);
   }
 
   arrive.mult(1);
