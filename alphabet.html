@@ -11,8 +11,8 @@
 </head>
 <script>
 
-var t, f, letters = {}; // NEXT: scale flee behavior
-var margin = 10, gap = 46, counter = 35;
+var t, f, letters = {}, sz = 1;
+var margin = 10*sz, gap = 46*sz;
 
 function preload() {
 
@@ -20,31 +20,71 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(720, 320);
-  textAlign(CENTER, CENTER);
+  createCanvas(720*sz, 320*sz);
   textStyle(BOLD);
   textFont(f, 24);
-  Letter.speed = 1;
+
+  for (var y = 0, cdx = 35; y < height-gap; y += gap) {
+    for (var x = 0; x < width-gap; x += gap) {
+      var lett = String.fromCharCode(cdx++);
+      var tw = textWidth(lett);
+      var th = textAscent();
+      letters[lett] = new Letter(f, lett, margin*4 + x-tw/2, margin*4 + y+th/2, 24);
+    }
+  }
+  //setInterval(shift, 2000);
+}
+
+var mouseReleased = function() {
+  draw();
+};
+
+function shift() {
+  var idx = 35;
   for (var y = 0; y < height-gap; y += gap) {
     for (var x = 0; x < width-gap; x += gap) {
-      var lett = String.fromCharCode(counter++);
-      letters[lett] = new Letter(f, lett, x, y, 24);
+      var lett = String.fromCharCode(idx++);
+      var tw = textWidth(lett);
+      var th = textAscent();
+      var pos = letters[lett].position();
+      pos.x += gap;
+      if (pos.x > width-gap/2) {
+        pos.x = -1;
+        pos.y += gap;
+      }
+      if (pos.y > height-gap/2) {
+        pos.y = margin * 4 + th/2;
+      }
+      if (pos.x < 0) {
+        letters[lett].target(0, pos.y, true, true);
+        pos.x = margin * 4 - tw/2;
+      }
+      letters[lett].target(pos.x, pos.y, true);
     }
   }
 }
 
 function draw() {
+
+  Vehicle.fleeMult = 1;//map( (sin(frameCount/200)+1)/2 , 0, 1, 1.0, 1.2);
+  //map(mouseY,0,height,0,5);
+
+  //push();
   drawFill();
+  //pop();
+
+  fill(255);
+  noStroke();
+  //text(round(Vehicle.fleeMult*100)/100, width-40, 10);
 }
 
 function drawFill() {
   background(0);
   noStroke();
-  translate(margin*4, margin*4);
   var letts = Object.keys(letters);
   for (var i = 0; i < letts.length; i++) {
     var l = letters[letts[i]];
-    fill(255);
+    fill(255);//, map(((sin(frameCount/100)+1)/2),0,1,32,255));
     if (letts[i] == 'P' || letts[i] == '5') {
       fill(255, 204, 0);
     }
@@ -54,6 +94,7 @@ function drawFill() {
     l.draw();
     //l.draw(l.center().x, l.center().y);
   }
+  noLoop();
 }
 
 function drawStroke() {

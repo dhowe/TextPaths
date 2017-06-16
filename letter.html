@@ -7,11 +7,10 @@
   <script src="vehicle.js"></script>
   <script src="wordlist.js"></script>
   <script src="letter.js"></script>
-  <script src="textoid.js"></script>
 </head>
 <script>
 
-var t, f, x, y, txt = '%';
+var l, f, x, y, txt = '%';
 
 function preload() {
 
@@ -20,20 +19,25 @@ function preload() {
 
 function setup() {
   createCanvas(400, 400);
-  textAlign(CENTER, CENTER);
   textFont(f, 200);
-  x = width/2;
-  y = height/3;
-  t = new Letter(f, txt, x, y);
-  // setTimeout(function(){
-  //   t.target(x,200);
-  // },2000);
+  x = 100;
+  y = 300;
+  Letter.fillVehicles = 1;
+  l = new Letter(f, txt, x, y);
 }
 
 function draw() {
 
   background(0);
   noFill();
+
+  stroke(255);
+  rect(l.bounds.x, l.bounds.y, l.bounds.w, l.bounds.h);
+
+  stroke(255,0,255);
+  var tbounds = l.getBounds(true);
+  rect(tbounds.x, tbounds.y, tbounds.w, tbounds.h);
+
   stroke(0, 255, 255);
   ellipse(x, y, 3, 3);
 
@@ -45,10 +49,9 @@ function draw() {
   stroke(255,0,0);
   fill(255);
 
-  //t.draw(t.center().x, t.center().y, 1);
-  t.draw(mouseX, mouseY, 1);
+  //l.draw(l.center().x, l.center().y, 1);
+  l.draw(mouseX, mouseY, 1);
   //t.draw();
-
 
   //noLoop();
 }

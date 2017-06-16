@@ -1,4 +1,6 @@
 // Next:
+//    inPosition() function
+//    fix starting position bug
 //    scaling of flee (alphabet.html)
 //    do smart morph (include bestPairings)
 
@@ -18,6 +20,36 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
     Letter.instances.push(this);
   }
 
+  this.getBounds = function(dynamic) {
+
+    if (!dynamic) return this.bounds;
+
+    var mv = Number.MAX_VALUE, xCoords = [], yCoords = [],
+      minX = mv, minY = mv, maxX = -mv, maxY = -mv;
+
+    this.vehicles.forEach(function(v) {
+      xCoords.push(v.pos.x);
+      yCoords.push(v.pos.y);
+    });
+
+    minX = Math.min.apply(null, xCoords);
+    minY = Math.min.apply(null, yCoords);
+    maxX = Math.max.apply(null, xCoords);
+    maxY = Math.max.apply(null, yCoords);
+
+    return {
+      x: minX,
+      y: minY,
+      h: maxY - minY,
+      w: maxX - minX,
+      advance: minX - this.x
+    };
+  }
+
+  this.inPosition = function() {
+    console.log('NEXT'); // true if all vehicles have arrived at targets
+  }
+
   this.createPath = function() {
 
     this.path = this.glyph.getPath(this.x, this.y, this.fontSize);
@@ -28,6 +60,9 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
   }
 
   this.position = function(x, y, ignoreAlignment) {
+    if (!arguments.length) {
+      return { x: this.x, y: this.y };
+    }
     this.target(x, y, ignoreAlignment, true);
   }
 
@@ -44,13 +79,9 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
     this.createPath();
 
     for (var i = 0; i < this.vehicles.length; i++) {
-      // this.vehicles[i].target.x += xOff;
-      // this.vehicles[i].target.y += yOff;
       this.vehicles[i].target.add(createVector(xOff, yOff))
       if (updatePosition) {
         this.vehicles[i].pos.add(createVector(xOff, yOff))
-      //   this.vehicles[i].pos.x += xOff;
-      //   this.vehicles[i].pos.y += yOff;
       }
     }
   }
@@ -210,8 +241,13 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
 
     ctx.beginPath();
     for (var i = 0; i < this.vehicles.length; i++) {
+
       var vehicle = this.vehicles[i];
       var x = vehicle.pos.x, y = vehicle.pos.y;
+
+      if (Letter.fillVehicles)
+        ctx.fillRect(x-1,y-1,2,2);
+
       if (vehicle.type === 'M') {
         ctx.moveTo(x, y);
       } else if (vehicle.type === 'Q') {
@@ -279,6 +315,8 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
 }
 
 Letter.instances = [];
+
+Letter.fillVehicles = false;
 
 Letter.drawAll = function(mx, my) {
   //Letter.speed = .1;

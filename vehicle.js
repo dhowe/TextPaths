@@ -1,14 +1,13 @@
 function Vehicle(radius, target, position, acceleration, velocity, col) {
   this.maxspeed = 10;
   this.maxforce = 2;
+  this.fleeMult = Vehicle.fleeMult;
   this.arriveDistance = 100;
   this.fleeRadius = 100;
   this.radius = radius;
   this.col = col || '#f00';
   this.reset(target, position, acceleration, velocity);
 }
-
-Vehicle.speed = 2;
 
 Vehicle.prototype.reset = function (target, position, acceleration, velocity) {
   this.target = target;
@@ -23,7 +22,9 @@ Vehicle.prototype.copy = function () {
 }
 
 Vehicle.prototype._behaviors = function (mx, my) {
+
   var flee, arrive = this.arrive(this.target);
+
   if (typeof mx !== 'undefined' && typeof my !== 'undefined') {
     flee = this.flee(createVector(mx, my));
   }
@@ -32,7 +33,7 @@ Vehicle.prototype._behaviors = function (mx, my) {
   }
 
   arrive.mult(1);
-  flee.mult(Vehicle.speed); // was flee.mult(5)
+  flee.mult(Vehicle.fleeMult)
   this.applyForce(arrive);
   this.applyForce(flee);
   return this;
@@ -82,7 +83,6 @@ Vehicle.prototype.flee = function (target) {
     steer.limit(this.maxforce);
     return steer;
   }
-
   return createVector(0, 0);
 }
 
@@ -101,3 +101,5 @@ Vehicle.prototype.draw = function (ctx) {
   point(this.pos.x, this.pos.y);
   return this;
 }
+
+Vehicle.fleeMult = 1.1;
