@@ -11,6 +11,8 @@
 </head>
 <script>
 
+// NEXT: fix atarting pos bug
+
 var t, f, letters = {}, sz = 1;
 var margin = 10*sz, gap = 46*sz;
 
@@ -32,7 +34,7 @@ function setup() {
       letters[lett] = new Letter(f, lett, margin*4 + x-tw/2, margin*4 + y+th/2, 24);
     }
   }
-  //setInterval(shift, 2000);
+  setInterval(shift, 2000);
 }
 
 var mouseReleased = function() {
@@ -76,6 +78,7 @@ function draw() {
   fill(255);
   noStroke();
   //text(round(Vehicle.fleeMult*100)/100, width-40, 10);
+  //noLoop(); // NEXT: debug initial placement
 }
 
 function drawFill() {
@@ -94,7 +97,6 @@ function drawFill() {
     l.draw();
     //l.draw(l.center().x, l.center().y);
   }
-  noLoop();
 }
 
 function drawStroke() {

@@ -13,7 +13,7 @@
 
 // NEXT: move maxTextSize into Textoid
 
-var f, txt, list = Object.keys(words), word, test;
+var f, txt, list = Object.keys(words), word, test='hello';
 
 function preload() {
   f = loadFont('fonts/ArialUnicode.ttf');
@@ -29,6 +29,7 @@ function setup() {
 function draw() {
 
   noFill();
+  stroke(255)
   background(0);
   txt && txt.draw();
 }

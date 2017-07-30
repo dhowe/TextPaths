@@ -3,6 +3,7 @@
 //    fix starting position bug
 //    scaling of flee (alphabet.html)
 //    do smart morph (include bestPairings)
+//    fix visible control points on lineTo segments (small dots)
 
 function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
 
@@ -15,9 +16,215 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
     this.char = String.fromCharCode(this.glyph.unicode);
     this.x = ignoreAlignment ? x : this._xAlign(x);
     this.y = ignoreAlignment ? y : this._yAlign(y);
+
     this.createPath();
     this.createVehicles();
+
     Letter.instances.push(this);
+  }
+
+  this.inPosition = function(slop) {
+    for (var i = 0; i < this.vehicles.length; i++) {
+      if (!this.vehicles[i].atTarget(slop))
+        return false;
+    }
+    return true;
+  }
+
+  this.createPath = function() {
+
+    this.path = this.glyph.getPath(this.x, this.y, this.fontSize);
+    //console.log(this.path);
+    var box = this.path.getBoundingBox();
+    this.bounds = { x:box.x1, y:box.y1, w:box.x2-box.x1, h:box.y2-box.y1 }; // x,y,w,h
+    this.scale = 1 / this.glyph.path.unitsPerEm * this.fontSize;
+    //console.log(this.glyph); console.log(this.path);
+  }
+
+  /*
+    For each command:
+      if (Z) continue
+      if (M|L|Q) create vehicle from point
+      if (L) change to Q, compute midpoints for new control point
+      if (Q) add second vehicle for control point
+   */
+  this.createVehicles = function() {
+
+    this.vehicles = [];
+    for (var i = 0, idx = 0; i < this.path.commands.length; i++) {
+
+      var cmd = this.path.commands[i];
+
+      if (cmd.type === 'Z') continue;
+
+      var veh = this._createVehicle(cmd.x, cmd.y, cmd.type);
+      this.vehicles[idx++] = veh;
+
+      if (veh.type === 'L') {
+
+        // convert lines to quads
+        veh.type = 'Q';
+
+        // compute midpoint between last and current
+        cmd.x1 = cmd.x - ((cmd.x - last.x) / 2)
+        cmd.y1 = cmd.y - ((cmd.y - last.y) / 2)
+      }
+
+      if (veh.type === 'Q') {
+
+        veh.control = this._createVehicle(cmd.x1, cmd.y1, 'C');
+        //console.log(veh.pos.x,veh.pos.y,'->',veh.control.pos.x,veh.control. pos.y);
+        //this.vehicles.push(veh.control);
+        this.vehicles[idx++] = veh.control;
+      }
+      else if (veh.type !== 'M') {
+
+        throw Error('Unexpected type: '+veh.type);
+      }
+
+      last = cmd;
+    }
+
+    //console.log('Created '+this.vehicles.length+' vehicles for '+this.char);
+  }
+
+  this.vehiclesRequired = function(path) {
+    var count = 0;
+    for (var i = 0; i < path.commands.length; i++) {
+      var cmd = path.commands[i];
+      if (cmd.type !== 'Z') {
+        count++;
+        if (cmd.type === 'L' || cmd.type === 'Q')
+          count++;
+      }
+    }
+    return count;
+  }
+
+  /*
+     We have vehicles with new types and targets
+       take1) remake them from scratch
+       take2) do it smarter
+   */
+  this.updateVehicles = function() {
+
+    if (this.vehiclesRequired(this.path) !== this.vehicles.length) {
+      console.error(this.vehiclesRequired(this.path), '!==', this.vehicles.length);
+      throw Error('Bad vehicle count');
+    }
+
+    for (var i = 0, idx = 0; i < this.path.commands.length; i++) {
+
+      var cmd = this.path.commands[i];
+
+      if (cmd.type === 'Z') continue;
+
+      var veh = this.vehicles[idx++];
+      veh.setTarget(cmd.x, cmd.y);
+      veh.control = undefined; // detach
+      veh.type = cmd.type; // just reset?
+
+      // Here we have to deal with mismatched-types
+      if (veh.type !== cmd.type) {
+
+      }
+
+      if (veh.type === 'L') {
+
+        // convert lines to quads
+        veh.type = 'Q';
+
+        // compute midpoint between last and current
+        cmd.x1 = cmd.x - ((cmd.x - last.x) / 2)
+        cmd.y1 = cmd.y - ((cmd.y - last.y) / 2)
+      }
+
+      if (veh.type === 'Q') {
+
+        veh.control = this.vehicles[idx++];
+        veh.control.setTarget(cmd.x, cmd.y);
+        veh.control.type = 'C';
+      }
+      else if (veh.type !== 'M') {
+
+        throw Error('Unexpected type: '+veh.type);
+      }
+
+      last = cmd;
+    }
+
+    //console.log('Created '+this.vehicles.length+' vehicles');
+  }
+
+  /*
+    We have a new Path (a command[]) and a set of vehicles
+
+    For each command:
+      if (Z) continue
+      if (M|L|Q) create vehicle from point
+      if (L) change to Q, compute midpoints for new control point
+      if (Q) add second vehicle for control point
+   */
+  this.morph = function(letter, x, y, fs) { // NEXT: not yet updated
+
+    if (arguments.length > 1) { // set position as well
+      this.x = x;
+      this.y = y;
+      this.fontSize = fs || this.fontSize;
+    }
+
+    this.glyph = font._getGlyphs(letter)[0];
+    this.char = String.fromCharCode(this.glyph.unicode);
+    this.createPath();
+    //console.log(this.vehiclesRequired(this.path) + ' vehicles required for '+this.char);
+    var difference = this.vehiclesRequired(this.path) - this.vehicles.length;
+
+    // TODO: smarter/smoother adding/deleting of vehicle arrays
+
+    if (difference > 0) { // fewer, add some vehicles
+
+      //console.log('Adding ', difference);
+      for (var i = 0; i < difference; i++) {
+        var randomIndex = floor(random(this.vehicles.length));
+        var v = this.vehicles[randomIndex].copy();
+        this.vehicles.splice(randomIndex, 0, v);
+      }
+
+    } else if (difference < 0) { // more, remove some vehicles
+
+      //console.log('Removing ', -difference);
+      for (var i = 0; i < -difference; i++) {
+        var randomIndex = floor(random(this.vehicles.length));
+        var toRemove = this.vehicles[randomIndex];
+        this.vehicles.splice(randomIndex, 1);
+        Vehicle.destroy(toRemove);
+        //toRemove.destroy(); // ?
+      }
+    }
+
+    //console.log('Adjusted to '+this.vehicles.length+
+      // ' vehicles (total: '+Vehicle.instances.length+')');
+
+    this.updateVehicles();
+  }
+
+  this.copy = function() {
+
+    var l = new Letter(this.font, this.glyph, this.x, this.y, this.fontSize);
+
+    // now update the current positions
+    for (var i = 0; i < l.vehicles.length; i++) {
+      l.vehicles[i].pos = this.vehicles[i].pos.copy();
+    }
+
+    return l;
+  }
+
+  this.destroy = function(x, y) {
+
+    this.vehicles = [];
+    delete this.path;
+    delete this.glyph;
   }
 
   this.getBounds = function(dynamic) {
@@ -46,168 +253,12 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
     };
   }
 
-  this.inPosition = function() {
-    console.log('NEXT'); // true if all vehicles have arrived at targets
-  }
-
-  this.createPath = function() {
-
-    this.path = this.glyph.getPath(this.x, this.y, this.fontSize);
-    var box = this.path.getBoundingBox();
-    this.bounds = { x:box.x1, y:box.y1, w:box.x2-box.x1, h:box.y2-box.y1 }; // x,y,w,h
-    this.scale = 1 / this.glyph.path.unitsPerEm * this.fontSize;
-    //console.log(this.glyph); console.log(this.path);
-  }
-
-  this.position = function(x, y, ignoreAlignment) {
-    if (!arguments.length) {
-      return { x: this.x, y: this.y };
-    }
-    this.target(x, y, ignoreAlignment, true);
-  }
-
-  this.target = function(x, y, ignoreAlignment, updatePosition) {
-
-    x = ignoreAlignment ? x : this._xAlign(x);
-    y = ignoreAlignment ? y : this._yAlign(y);
-
-    var xOff = x - this.x;
-    var yOff = y - this.y;
-
-    this.x = x;
-    this.y = y;
-    this.createPath();
-
-    for (var i = 0; i < this.vehicles.length; i++) {
-      this.vehicles[i].target.add(createVector(xOff, yOff))
-      if (updatePosition) {
-        this.vehicles[i].pos.add(createVector(xOff, yOff))
-      }
-    }
-  }
-
-  this.createVehicles = function() {
-
-    this.vehicles = [];
-    for (var i = 0; i < this.path.commands.length; i++) {
-
-      var cmd = this.path.commands[i];
-
-      if (cmd.type === 'Z') continue;
-
-      var veh = this._createVehicle(cmd.x, cmd.y, cmd.type);
-      this.vehicles.push(veh);
-
-      if (veh.type === 'L') {
-
-        // convert lines to quads
-        veh.type = 'Q';
-
-        // compute midpoint between last and current
-        cmd.x1 = cmd.x - ((cmd.x - last.x) / 2)
-        cmd.y1 = cmd.y - ((cmd.y - last.y) / 2)
-      }
-
-      if (veh.type === 'Q') {
-
-        veh.control = this._createVehicle(cmd.x1, cmd.y1, 'C');
-        //console.log(veh.pos.x,veh.pos.y,'->',veh.control.pos.x,veh.control. pos.y);
-        this.vehicles.push(veh.control);
-      }
-      else if (veh.type !== 'M') {
-
-        throw Error('Unexpected type: '+veh.type);
-      }
-
-      last = cmd;
-    }
-
-    //console.log('Created '+this.vehicles.length+' vehicles');
-  }
-
-  this.copy = function() {
-
-    var l = new Letter(this.font, this.glyph, this.x, this.y, this.fontSize);
-
-    // now update the current positions
-    for (var i = 0; i < l.vehicles.length; i++) {
-      l.vehicles[i].pos = this.vehicles[i].pos.copy();
-    }
-
-    return l;
-  }
-
-  this.destroy = function(x, y) {
-
-    this.vehicles = [];
-    delete this.path;
-    delete this.glyph;
-  }
-
-  this.morph = function(letter, x, y, fs) { // not updated
-
-    //console.log('morph', letter, x, y, fs);
-
-    function copyVehicleArray(v) {
-      var result = [];
-      for (var i = 0; i < v.length; i++) {
-        result.push(v[i].copy());
-      }
-      return result;
-    }
-
-    if (arguments.length > 1) { // set position as well
-      this.x = x;
-      this.y = y;
-      this.fontSize = fs || this.fontSize;
-    }
-
-    var current = this.vehicles.length;
-    this.glyph = font._getGlyphs(letter)[0];
-    this.createPaths();
-    var difference = this.paths.length - current;
-
-    // TODO: smarter/smoother adding/deleting of vehicle arrays
-
-    if (difference > 0) { // fewer, add some
-
-      //console.log('adding');
-      for (var i = 0; i < difference; i++) {
-        var randomIndex = floor(random(this.vehicles.length));
-        var v = copyVehicleArray(this.vehicles[randomIndex]);
-        this.vehicles.splice(randomIndex, 0, v);
-      }
-
-    } else if (difference < 0) { // more, remove some
-
-      //console.log('removing ',-difference);
-      for (var i = 0; i < -difference; i++) {
-        var randomIndex = floor(random(this.vehicles.length));
-        var toRemove = this.vehicles[randomIndex];
-        this.vehicles.splice(randomIndex, 1);
-        //for (var j = 0; j < toRemove.length; j++)
-          //toRemove[j].destroy();
-        toRemove = [];
-      }
-    }
-
-    if (this.paths.length != this.vehicles.length)
-      throw Error('1. invalid state: letter='+letter+
-      ' ('+this.paths.length+') '+this.vehicles.length);
-
-    // We now have an equal # of paths, now handle vehicles
-    for (var i = 0; i < this.paths.length; i++) {
-      this.resetVehicles(i);
-    }
-  }
-
-  this._createVehicle = function(vx, vy, type) {
-    var startInPosition = true;
+  this._createVehicle = function(vx, vy, type, startAtCenter) {
     var xOff = this.bounds ? this.bounds.w / 2 : 0;
     var yOff = this.bounds ? this.bounds.h / -2 : 0;
     var target = createVector(vx, vy);
     //var position = createVector(random(0, width), random(0, height));
-    var position = startInPosition ? target.copy() : createVector(this.x+xOff, this.y+yOff);
+    var position = startAtCenter ? createVector(this.x+xOff, this.y+yOff) : target.copy();
     var acceleration = createVector();
     var velocity = p5.Vector.random2D();
     var veh = new Vehicle(3, target, position, acceleration, velocity);
@@ -237,9 +288,12 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
 
   this.render = function(drawBounds) {
 
+    // console.log(this.char+".render()");
+
     var p = this.font.parent, pg = p._renderer, ctx = pg.drawingContext;
 
     ctx.beginPath();
+
     for (var i = 0; i < this.vehicles.length; i++) {
 
       var vehicle = this.vehicles[i];
@@ -255,21 +309,24 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
       }
     }
 
-    if (pg._doStroke && pg._strokeSet) {
+    if (pg._doStroke) {//} && pg._strokeSet) {
+      ctx.lineWidth=1;
       ctx.stroke();
     }
     if (pg._doFill) {
       ctx.fillStyle = pg._fillSet ? ctx.fillStyle : p._DEFAULT_TEXT_FILL;
       ctx.fill();
     }
+
     ctx.closePath();
 
     if (drawBounds) {
       noFill();
       stroke(100);
-      rect(this.bounds.x,this.bounds.y,this.bounds.w,this.bounds.h);
+      rect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
     }
   }
+
   this._xAlign = function(x) {
 
     var p = this.font.parent, ctx = this.ctx;
@@ -303,6 +360,33 @@ function Letter(font, glyph, x, y, fsize, ignoreAlignment) {
     return y;
   }
 
+  this.position = function(x, y, ignoreAlignment) {
+    if (!arguments.length) {
+      return { x: this.x, y: this.y };
+    }
+    this.target(x, y, ignoreAlignment, true);
+  }
+
+  this.target = function(x, y, ignoreAlignment, updatePosition) {
+
+    x = ignoreAlignment ? x : this._xAlign(x);
+    y = ignoreAlignment ? y : this._yAlign(y);
+
+    var xOff = x - this.x;
+    var yOff = y - this.y;
+
+    this.x = x;
+    this.y = y;
+    this.createPath();
+
+    for (var i = 0; i < this.vehicles.length; i++) {
+      this.vehicles[i].target.add(createVector(xOff, yOff))
+      if (updatePosition) {
+        this.vehicles[i].pos.add(createVector(xOff, yOff))
+      }
+    }
+  }
+
   function validateFont(f) {
     if (!(typeof f === 'object' && f.font && f.font.supported)) {
       console.error("Font: ", f);
@@ -325,8 +409,8 @@ Letter.drawAll = function(mx, my) {
   }
 }
 
-Letter.destroy = function(t) {
-  var idx = Letter.instances.indexOf(t);
+Letter.destroy = function(l) {
+  var idx = Letter.instances.indexOf(l);
   if (idx > -1) Letter.instances.splice(idx,1);
 }
 
@@ -344,9 +428,6 @@ function logV(v) {
     console.log(s);
   }, 1500);
 }
-
-
-
 
 // The Opentype Bounding Box object ////////////////////////////////////
 

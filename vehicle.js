@@ -2,11 +2,17 @@ function Vehicle(radius, target, position, acceleration, velocity, col) {
   this.maxspeed = 10;
   this.maxforce = 2;
   this.fleeMult = Vehicle.fleeMult;
-  this.arriveDistance = 100;
+  this.arriveDistance = 100; // start slowing down when inside this dist
   this.fleeRadius = 100;
   this.radius = radius;
   this.col = col || '#f00';
   this.reset(target, position, acceleration, velocity);
+  Vehicle.instances.push(this);
+}
+
+Vehicle.prototype.atTarget = function(slop) {
+  // true if all vehicles have arrived at targets
+  return p5.Vector.sub(this.target, this.pos).mag() < (slop || 1);
 }
 
 Vehicle.prototype.reset = function (target, position, acceleration, velocity) {
@@ -23,23 +29,26 @@ Vehicle.prototype.copy = function () {
 
 Vehicle.prototype._behaviors = function (mx, my) {
 
-  var flee, arrive = this.arrive(this.target);
+  var fleeF, arriveF = this.arrive(this.target);
 
   if (typeof mx !== 'undefined' && typeof my !== 'undefined') {
-    flee = this.flee(createVector(mx, my));
+    fleeF = this.flee(createVector(mx, my));
   }
   else {
-    flee = createVector(0, 0);
+    fleeF = createVector(0, 0);
   }
 
-  arrive.mult(1);
-  flee.mult(Vehicle.fleeMult)
-  this.applyForce(arrive);
-  this.applyForce(flee);
-  return this;
+  arriveF.mult(1);
+  fleeF.mult(Vehicle.fleeMult)
+
+  return this.applyForce(arriveF).applyForce(fleeF);
 }
 
-Vehicle.prototype.setTarget = function (t) {
+Vehicle.prototype.setTarget = function () { // vector or x,y
+  var t = arguments[0];
+  if (arguments.length == 2) {
+    t = createVector(arguments[0], arguments[1]);
+  }
   this.target = t;
   return this;
 }
@@ -97,9 +106,19 @@ Vehicle.prototype.update = function (mx, my) {
 Vehicle.prototype.draw = function (ctx) {
   noFill();
   stroke('#f00');
+  if (this.atTarget(1))
+    stroke('#0f0');
   strokeWeight(this.radius);
   point(this.pos.x, this.pos.y);
   return this;
 }
 
-Vehicle.fleeMult = 1.1;
+Vehicle.fleeMult = 1.1; // ?
+Vehicle.instances = [];
+Vehicle.drawAll = function() {
+  Vehicle.instances.forEach(function(v){ v.draw() });
+}
+Vehicle.destroy = function(v) {
+  var idx = Vehicle.instances.indexOf(v);
+  if (idx > -1) Vehicle.instances.splice(idx,1);
+}

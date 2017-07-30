@@ -13,39 +13,44 @@
 </body>
 
 <script>
+// NEXT: fix incorrect curves (letters.html) *** (S->S is good ex)
+// NEXT: fix/minimize breaking lines on transitions (D->F is good ex)
+// NEXT: fix initial positions (do 1 letter without draw loop, then see alphabet.html)
 
-// NEXT: Refactor Letter, chinese, word -> word
 // OPT:  do bestPairings
 // BUG:  fix fill for interior paths (if contained)
 
-var letter, l1, seq, xxx = 'BASDFA', sidx = -1, test = 0; // tmp
+var letter, seq = 'SBASDFA', sidx = -1, test = 0; // tmp
 
 function setup() {
 
   createCanvas(600, 400);
   background(245);
+  frameRate(5);
+
   loadFont('fonts/ArialUnicode.ttf', function(f) {
-    letter = new Letter(f, 'H', 100, 300, 300);
+    letter = new Letter(f, seq[0], 100, 300, 300);
   });
-  setTimeout(function(){
-    letter.morph('A', 300, 300, 500);
-  }, 3000);
-  //setTimeout(next, 3000);
+
+  next();
 }
 
 function draw() {
 
+  stroke(255);
   background(0);
   letter && letter.draw();
-  //l1 && l1.draw();
+  Vehicle.drawAll();
 }
 
 function next() {
-  if (seq && seq.length)
-    letter.morph(seq[++sidx%seq.length]);
-  else
-    letter.morph(Letter.random());
-  test || setTimeout(next, 2000);
+  if (letter && letter.inPosition()) {
+    if (seq && seq.length)
+      letter.morph(seq[++sidx%seq.length]);
+    else
+      letter.morph(Letter.random());
+  }
+  test || setTimeout(next, 100);
 }
 
 function keyReleased() {
